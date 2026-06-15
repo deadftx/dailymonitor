@@ -14,6 +14,7 @@ let configApp = {
 
 // Nova Estrutura para os Lembretes Momentâneos (inclui dados de alarme)
 let momentaneas = [];
+let gameAlerts = [];
 
 // Variável para controle do editor universal
 let idEmEdicao = null;
@@ -194,18 +195,16 @@ function checkAlarms() {
     const diaHoje = dataH.getDay().toString();
     const stringData = dataH.toLocaleDateString();
 
-    // Combina tarefas recorrentes com momentâneas ativas e que tenham hora definida
     const momentaneasComAlarme = momentaneas.filter(m => !m.arquivado && m.time !== "");
-    const todasTasks = [...tarefas, ...momentaneasComAlarme];
+    const gamesAtivos = typeof gameAlerts !== 'undefined' ? gameAlerts.filter(g => g.ativo).map(g => ({...g, category: 'Game', preAviso: "0", isGame: true})) : [];
+    const todasTasks = [...tarefas, ...momentaneasComAlarme, ...gamesAtivos];
 
     todasTasks.forEach(tarefa => {
         if (!tarefa.ativo) return;
-        // Se tiver dias definidos (recorrente), verifica o dia. Se não, é momentânea e deve tocar.
         if (tarefa.dias && !tarefa.dias.includes(diaHoje)) return;
 
         if (calcularHoraDisparo(tarefa.time, tarefa.preAviso) === horaAtual) {
-            // Usa o tipo na chave para não conflitar IDs
-            const tipo = tarefa.dias ? 'rec' : 'mom';
+            const tipo = tarefa.isGame ? 'game' : (tarefa.dias ? 'rec' : 'mom');
             const chaveUnica = `${tipo}-${tarefa.id}-${stringData}-${horaAtual}`;
             if (!alarmesDisparadosHoje.has(chaveUnica)) {
                 alarmesDisparadosHoje.add(chaveUnica);
@@ -218,18 +217,16 @@ function checkAlarms() {
 function acionarTelaAlarme(tarefa) {
     startBeep();
     const modalAlerta = document.getElementById('modal-alerta');
-    document.getElementById('alerta-titulo').innerText = tarefa.title;
+    document.getElementById('alerta-titulo').innerText = (tarefa.isGame ? '🕹️ ' : '') + tarefa.title;
     document.getElementById('alerta-hora').innerText = tarefa.preAviso !== "0" ? `Evento às ${tarefa.time}!` : `Agora! (${tarefa.time})`;
-    document.getElementById('alerta-notas').innerText = tarefa.notas ? `Obs: ${tarefa.notas}` : '';
+    document.getElementById('alerta-notas').innerText = tarefa.notas ? `Obs: ${tarefa.notas}` : (tarefa.isGame ? 'Lembrete de Jogo!' : '');
     modalAlerta.style.display = 'flex';
 
-    // Configuração do clique de parada
     document.getElementById('btn-parar-alarme').onclick = () => {
         modalAlerta.style.display = 'none';
         stopBeep();
 
-        // NOVO: Se NÃO tiver a propriedade 'dias', sabemos que é uma nota momentânea/rápida
-        if (!tarefa.dias) {
+        if (!tarefa.dias && !tarefa.isGame) {
             console.log(`Auto-arquivando nota rápida concluída: ${tarefa.title}`);
             arquivarLembrete(tarefa.id);
         }
@@ -662,7 +659,7 @@ function renderizarFinancas() {
             </div>
             <div class="fin-item-value-box">
                 <span class="fin-item-value">${formatCurrency(c.limiteDisp)}</span>
-                <span class="fin-item-value-sub">disponível</span>
+                <span class="fin-item-value-sub">a pagar</span>
                 <div class="fin-actions-hover">
                     <button class="btn-fin-edit" onclick="abrirEditFin('cartao', ${c.id})">✏️</button>
                     <button class="btn-fin-del" onclick="deletarFin('cartao', ${c.id})">🗑️</button>
@@ -737,14 +734,15 @@ function renderizarFinancas() {
     if (elTotGanhos) elTotGanhos.innerHTML = `${formatCurrency(totalGanhos)} <span class="fin-subtext">total de receitas</span>`;
 
     // PROJEÇÃO DO MÊS
-    const projecao = totalGanhos - totalAss;
+    const totalSaidas = totalAss + totalLimiteDisp;
+    const projecao = totalContas + totalGanhos - totalSaidas;
     const elTotProj = document.getElementById('fin-total-projecao');
     if (elTotProj) {
         elTotProj.innerText = formatCurrency(projecao);
-        elTotProj.style.color = projecao >= 0 ? 'var(--accent-color)' : '#ff4444';
+        elTotProj.style.color = projecao >= 0 ? 'var(--accent-color)' : '#ff4d4d';
     }
-    if (document.getElementById('proj-entradas')) document.getElementById('proj-entradas').innerText = formatCurrency(totalGanhos);
-    if (document.getElementById('proj-saidas')) document.getElementById('proj-saidas').innerText = `- ${formatCurrency(totalAss)}`;
+    if (document.getElementById('proj-entradas')) document.getElementById('proj-entradas').innerText = formatCurrency(totalContas + totalGanhos);
+    if (document.getElementById('proj-saidas')) document.getElementById('proj-saidas').innerText = `- ${formatCurrency(totalSaidas)}`;
 }
 
 function deletarFin(tipo, id) {
@@ -928,30 +926,42 @@ setInterval(() => {
                             });
                         }
                     }
-                    if (video && !video.paused) {
-                        let titleEl = document.querySelector('yt-formatted-string.title.ytmusic-player-bar');
+                    let titleEl = document.querySelector('yt-formatted-string.title.ytmusic-player-bar');
+                    if (titleEl && titleEl.innerText) {
                         let artistEl = document.querySelector('span.subtitle.ytmusic-player-bar');
                         let imgEl = document.querySelector('ytmusic-player-bar img');
+                        let isPaused = video ? video.paused : true;
                         
                         return { 
-                            title: titleEl ? titleEl.innerText : 'Música', 
+                            title: titleEl.innerText, 
                             artist: artistEl ? artistEl.innerText.split('•')[0].trim() : 'Artista', 
                             img: imgEl ? imgEl.src : '', 
-                            isPlaying: true 
+                            isPlaying: !isPaused 
                         };
                     }
-                    return { isPlaying: false };
-                } catch(e) { return { isPlaying: false }; }
+                    return null;
+                } catch(e) { return null; }
             })()
         `).then(result => {
-            if (result && result.isPlaying) {
+            if (result) {
                 if (nowPlayingContainer.style.display === 'none') {
                     nowPlayingContainer.style.display = 'flex';
                 }
                 document.getElementById('np-title').innerText = result.title;
                 document.getElementById('np-artist').innerText = result.artist;
-                if (result.img) {
+                if (result.img && document.getElementById('np-cover').src !== result.img) {
                     document.getElementById('np-cover').src = result.img;
+                }
+                
+                let playPauseBtn = document.getElementById('btn-yt-playpause');
+                let anim = document.querySelector('.playing-animation');
+                
+                if (result.isPlaying) {
+                    if (anim) anim.style.opacity = '1';
+                    if (playPauseBtn) playPauseBtn.innerText = '⏸️';
+                } else {
+                    if (anim) anim.style.opacity = '0.3';
+                    if (playPauseBtn) playPauseBtn.innerText = '▶️';
                 }
             } else {
                 nowPlayingContainer.style.display = 'none';
@@ -960,5 +970,408 @@ setInterval(() => {
     }
 }, 2000);
 
+// Controles do Miniplayer
+if (document.getElementById('btn-yt-prev')) {
+    document.getElementById('btn-yt-prev').onclick = () => {
+        if(ytWebview) ytWebview.executeJavaScript(`
+            var prevBtn = document.querySelector('tp-yt-paper-icon-button.previous-button') || document.querySelector('.previous-button');
+            if(prevBtn) prevBtn.click();
+        `);
+    };
+    document.getElementById('btn-yt-next').onclick = () => {
+        if(ytWebview) ytWebview.executeJavaScript(`
+            var nextBtn = document.querySelector('tp-yt-paper-icon-button.next-button') || document.querySelector('.next-button');
+            if(nextBtn) nextBtn.click();
+        `);
+    };
+    document.getElementById('btn-yt-playpause').onclick = () => {
+        if(ytWebview) ytWebview.executeJavaScript(`
+            var ppBtn = document.getElementById('play-pause-button');
+            if(ppBtn) {
+                ppBtn.click();
+            } else {
+                var v = document.querySelector('video');
+                if(v) v.paused ? v.play() : v.pause();
+            }
+        `);
+    };
+}
+
+// ====== MONITOR DE CLIMA ======
+async function buscarClima() {
+    try {
+        document.getElementById('weather-desc').innerText = 'Buscando...';
+        // Usar ipinfo.io que é mais confiável e não tem limite de requests chatos
+        const geoRes = await fetch('https://ipinfo.io/json');
+        const geoData = await geoRes.json();
+        
+        if (!geoData.loc) throw new Error("Sem lat/lon");
+        
+        const [lat, lon] = geoData.loc.split(',');
+
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+        const weatherData = await weatherRes.json();
+        
+        if (weatherData.current_weather) {
+            const temp = Math.round(weatherData.current_weather.temperature);
+            const code = weatherData.current_weather.weathercode;
+            document.getElementById('weather-temp').innerText = temp + '°C';
+            
+            let icon = '🌤️'; let desc = 'Nublado';
+            if (code === 0) { icon = '☀️'; desc = 'Céu limpo'; }
+            else if (code <= 3) { icon = '⛅'; desc = 'Parcialmente nublado'; }
+            else if (code <= 48) { icon = '🌫️'; desc = 'Neblina'; }
+            else if (code <= 67) { icon = '🌧️'; desc = 'Chuva'; }
+            else if (code <= 77) { icon = '❄️'; desc = 'Neve'; }
+            else if (code <= 82) { icon = '🌦️'; desc = 'Pancadas de chuva'; }
+            else if (code >= 95) { icon = '⛈️'; desc = 'Tempestade'; }
+            
+            document.getElementById('weather-icon').innerText = icon;
+            document.getElementById('weather-desc').innerText = desc + ` (${geoData.city})`;
+        }
+    } catch (e) {
+        console.error('Erro clima', e);
+        document.getElementById('weather-desc').innerText = 'Indisponível';
+    }
+}
+
+if(document.getElementById('weather-widget')) {
+    document.getElementById('weather-widget').onclick = buscarClima;
+    buscarClima();
+    setInterval(buscarClima, 1800000); // Atualiza a cada 30 min
+}
+
+// ====== CENTRAL DE ALERTAS GAMERS ======
+const modalGamers = document.getElementById('modal-gamers');
+if (document.getElementById('btn-alertas-games')) {
+    document.getElementById('btn-alertas-games').onclick = () => {
+        carregarGameAlerts();
+        modalGamers.style.display = 'flex';
+    };
+}
+if (document.getElementById('btn-fechar-gamers')) {
+    document.getElementById('btn-fechar-gamers').onclick = () => modalGamers.style.display = 'none';
+}
+
+function carregarGameAlerts() {
+    const salvo = localStorage.getItem('tv_gamers');
+    gameAlerts = salvo ? JSON.parse(salvo) : [];
+    renderizarGameAlerts();
+}
+
+function salvarGameAlerts() {
+    localStorage.setItem('tv_gamers', JSON.stringify(gameAlerts));
+}
+
+function renderizarGameAlerts() {
+    const lista = document.getElementById('lista-gamers');
+    if (!lista) return;
+    lista.innerHTML = '';
+    
+    gameAlerts.sort((a,b) => a.time.localeCompare(b.time)).forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'fin-item';
+        div.style = 'border: 1px solid #9b59b6; background: rgba(155, 89, 182, 0.1); flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; box-sizing: border-box;';
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <span style="font-weight: bold; color: #fff;">🕹️ ${g.title}</span>
+                <button class="btn-fin-del" onclick="deletarGameAlert(${g.id})" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">🗑️</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <span style="color: #9b59b6; font-size: 1.2rem; font-weight: bold;">⏰ ${g.time}</span>
+                <label style="display:flex; align-items:center; gap:5px; font-size: 0.8rem; cursor:pointer;">
+                    <input type="checkbox" ${g.ativo ? 'checked' : ''} onchange="toggleGameAlert(${g.id}, this.checked)"> Ativo
+                </label>
+            </div>
+        `;
+        lista.appendChild(div);
+    });
+}
+
+function deletarGameAlert(id) {
+    gameAlerts = gameAlerts.filter(x => x.id !== id);
+    salvarGameAlerts();
+    renderizarGameAlerts();
+}
+
+window.toggleGameAlert = function(id, ativo) {
+    const idx = gameAlerts.findIndex(x => x.id === id);
+    if(idx !== -1) {
+        gameAlerts[idx].ativo = ativo;
+        salvarGameAlerts();
+    }
+};
+
+if (document.getElementById('btn-add-game-alert')) {
+    document.getElementById('btn-add-game-alert').onclick = () => {
+        const title = document.getElementById('game-alert-name').value.trim();
+        const time = document.getElementById('game-alert-time').value;
+        if (!title || !time) return alert("Preencha o nome e a hora!");
+        gameAlerts.push({ id: Date.now(), title, time, ativo: true });
+        document.getElementById('game-alert-name').value = '';
+        document.getElementById('game-alert-time').value = '';
+        salvarGameAlerts();
+        renderizarGameAlerts();
+    };
+}
+
+// ====== AGENDA MENSAL ======
+let agendaEvents = {}; // formato: { "YYYY-MM-DD": [ {id, title, time} ] }
+let agendaCurrentDate = new Date();
+let selectedDateString = null;
+const modalAgenda = document.getElementById('modal-agenda');
+const modalAgendaEvento = document.getElementById('modal-agenda-evento');
+
+if (document.getElementById('btn-agenda')) {
+    document.getElementById('btn-agenda').onclick = () => {
+        carregarAgenda();
+        agendaCurrentDate = new Date();
+        renderizarCalendario();
+        modalAgenda.style.display = 'flex';
+    };
+}
+if (document.getElementById('btn-fechar-agenda')) {
+    document.getElementById('btn-fechar-agenda').onclick = () => modalAgenda.style.display = 'none';
+}
+if (document.getElementById('btn-fechar-evento')) {
+    document.getElementById('btn-fechar-evento').onclick = () => modalAgendaEvento.style.display = 'none';
+}
+if (document.getElementById('btn-agenda-prev')) {
+    document.getElementById('btn-agenda-prev').onclick = () => {
+        agendaCurrentDate.setMonth(agendaCurrentDate.getMonth() - 1);
+        renderizarCalendario();
+    };
+}
+if (document.getElementById('btn-agenda-next')) {
+    document.getElementById('btn-agenda-next').onclick = () => {
+        agendaCurrentDate.setMonth(agendaCurrentDate.getMonth() + 1);
+        renderizarCalendario();
+    };
+}
+
+function carregarAgenda() {
+    const salvo = localStorage.getItem('tv_agenda');
+    agendaEvents = salvo ? JSON.parse(salvo) : {};
+}
+
+function salvarAgenda() {
+    localStorage.setItem('tv_agenda', JSON.stringify(agendaEvents));
+}
+
+function renderizarCalendario() {
+    const grid = document.getElementById('agenda-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    const year = agendaCurrentDate.getFullYear();
+    const month = agendaCurrentDate.getMonth();
+    const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    document.getElementById('agenda-month-year').innerText = `${mesesNomes[month]} ${year}`;
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Dias vazios (mes passado)
+    for (let i = 0; i < firstDay; i++) {
+        const div = document.createElement('div');
+        div.style = 'background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);';
+        grid.appendChild(div);
+    }
+    
+    const hojeDate = new Date();
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${(month+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+        const isHoje = hojeDate.getDate() === d && hojeDate.getMonth() === month && hojeDate.getFullYear() === year;
+        
+        const div = document.createElement('div');
+        div.className = 'agenda-day-cell';
+        let bg = isHoje ? 'rgba(46, 204, 113, 0.3)' : 'rgba(0,0,0,0.3)';
+        let border = isHoje ? 'border: 2px solid #2ecc71;' : 'border: 1px solid rgba(255,255,255,0.1);';
+        
+        div.style = `background: ${bg}; ${border} border-radius: 8px; padding: 5px; cursor: pointer; display: flex; flex-direction: column; transition: 0.2s; min-height: 80px; position: relative;`;
+        div.onmouseover = () => div.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        div.onmouseout = () => div.style.backgroundColor = bg;
+        div.onclick = () => abrirDia(dateStr, d, mesesNomes[month]);
+        
+        // Número do dia
+        div.innerHTML = `<div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">${d}</div>`;
+        
+        // Eventos
+        const evs = agendaEvents[dateStr] || [];
+        if (evs.length > 0) {
+            const evContainer = document.createElement('div');
+            evContainer.style = 'display: flex; flex-direction: column; gap: 2px; overflow: hidden;';
+            evs.slice(0,3).forEach(ev => {
+                const badge = document.createElement('div');
+                badge.style = 'font-size: 0.65rem; background: #2ecc71; color: #000; border-radius: 3px; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold;';
+                badge.innerText = (ev.time ? ev.time + ' ' : '') + ev.title;
+                evContainer.appendChild(badge);
+            });
+            if(evs.length > 3) {
+                const more = document.createElement('div');
+                more.style = 'font-size: 0.65rem; color: #aaa; text-align: center;';
+                more.innerText = `+${evs.length - 3} eventos`;
+                evContainer.appendChild(more);
+            }
+            div.appendChild(evContainer);
+        }
+        
+        grid.appendChild(div);
+    }
+}
+
+function abrirDia(dateStr, d, mName) {
+    selectedDateString = dateStr;
+    document.getElementById('modal-agenda-titulo').innerText = `Eventos: ${d} de ${mName}`;
+    document.getElementById('agenda-evento-title').value = '';
+    document.getElementById('agenda-evento-time').value = '';
+    renderizarEventosDia();
+    modalAgendaEvento.style.display = 'flex';
+}
+
+function renderizarEventosDia() {
+    const lista = document.getElementById('lista-eventos-dia');
+    lista.innerHTML = '';
+    const evs = agendaEvents[selectedDateString] || [];
+    if (evs.length === 0) {
+        lista.innerHTML = '<div style="color:#aaa; text-align:center; font-size:0.9rem;">Nenhum evento neste dia.</div>';
+        return;
+    }
+    
+    evs.sort((a,b) => (a.time||'24:00').localeCompare(b.time||'24:00')).forEach(ev => {
+        const div = document.createElement('div');
+        div.style = 'background: rgba(255,255,255,0.1); margin-bottom: 5px; padding: 5px 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+        div.innerHTML = `
+            <div>
+                <span style="font-weight: bold; color: #2ecc71;">${ev.time ? ev.time+' - ' : ''}</span>
+                <span>${ev.title}</span>
+            </div>
+            <button onclick="deletarEventoAgenda(${ev.id})" style="background: none; border: none; cursor: pointer;">❌</button>
+        `;
+        lista.appendChild(div);
+    });
+}
+
+function deletarEventoAgenda(id) {
+    if(!selectedDateString) return;
+    agendaEvents[selectedDateString] = agendaEvents[selectedDateString].filter(x => x.id !== id);
+    if(agendaEvents[selectedDateString].length === 0) delete agendaEvents[selectedDateString];
+    salvarAgenda();
+    renderizarEventosDia();
+    renderizarCalendario();
+}
+
+if(document.getElementById('btn-salvar-evento')) {
+    document.getElementById('btn-salvar-evento').onclick = () => {
+        const title = document.getElementById('agenda-evento-title').value.trim();
+        const time = document.getElementById('agenda-evento-time').value;
+        if(!title) return alert("Preencha o título do evento!");
+        
+        if(!agendaEvents[selectedDateString]) agendaEvents[selectedDateString] = [];
+        agendaEvents[selectedDateString].push({ id: Date.now(), title, time });
+        salvarAgenda();
+        
+        document.getElementById('agenda-evento-title').value = '';
+        document.getElementById('agenda-evento-time').value = '';
+        renderizarEventosDia();
+        renderizarCalendario();
+    };
+}
+
+// ====== POMODORO FOCUS ======
+let pomoInterval = null;
+let pomoTimeLeft = 25 * 60;
+let isPomoRunning = false;
+let isPomoBreak = false;
+const POMO_WORK = 25 * 60;
+const POMO_BREAK = 5 * 60;
+
+const modalPomo = document.getElementById('modal-pomodoro');
+const pomoCircle = document.getElementById('pomodoro-circle');
+const pomoTimeEl = document.getElementById('pomodoro-time');
+const pomoStatusEl = document.getElementById('pomodoro-status');
+const btnPomoStart = document.getElementById('btn-pomo-start');
+const btnPomoPause = document.getElementById('btn-pomo-pause');
+
+if (document.getElementById('btn-pomodoro')) {
+    document.getElementById('btn-pomodoro').onclick = () => {
+        modalPomo.style.display = 'flex';
+        updatePomoUI();
+    };
+}
+if (document.getElementById('btn-fechar-pomodoro')) {
+    document.getElementById('btn-fechar-pomodoro').onclick = () => modalPomo.style.display = 'none';
+}
+
+function updatePomoUI() {
+    const total = isPomoBreak ? POMO_BREAK : POMO_WORK;
+    const pct = pomoTimeLeft / total;
+    const offset = 879.64 - (pct * 879.64);
+    pomoCircle.style.strokeDashoffset = offset;
+    
+    const m = Math.floor(pomoTimeLeft / 60).toString().padStart(2, '0');
+    const s = (pomoTimeLeft % 60).toString().padStart(2, '0');
+    pomoTimeEl.innerText = `${m}:${s}`;
+    
+    if(isPomoBreak) {
+        pomoStatusEl.innerText = "PAUSA";
+        pomoStatusEl.style.color = "#2ecc71";
+        pomoStatusEl.style.textShadow = "0 0 20px #2ecc71";
+        pomoCircle.style.stroke = "#2ecc71";
+    } else {
+        pomoStatusEl.innerText = "FOCUS";
+        pomoStatusEl.style.color = "#ff4757";
+        pomoStatusEl.style.textShadow = "0 0 20px #ff4757";
+        pomoCircle.style.stroke = "#ff4757";
+    }
+}
+
+if(btnPomoStart) {
+    btnPomoStart.onclick = () => {
+        if(isPomoRunning) return;
+        isPomoRunning = true;
+        btnPomoStart.style.display = 'none';
+        btnPomoPause.style.display = 'block';
+        
+        pomoInterval = setInterval(() => {
+            pomoTimeLeft--;
+            if(pomoTimeLeft <= 0) {
+                clearInterval(pomoInterval);
+                isPomoRunning = false;
+                startBeep();
+                setTimeout(stopBeep, 3000);
+                
+                isPomoBreak = !isPomoBreak;
+                pomoTimeLeft = isPomoBreak ? POMO_BREAK : POMO_WORK;
+                btnPomoStart.style.display = 'block';
+                btnPomoPause.style.display = 'none';
+            }
+            updatePomoUI();
+        }, 1000);
+    };
+}
+
+if(btnPomoPause) {
+    btnPomoPause.onclick = () => {
+        isPomoRunning = false;
+        clearInterval(pomoInterval);
+        btnPomoStart.style.display = 'block';
+        btnPomoPause.style.display = 'none';
+    };
+}
+
+if(document.getElementById('btn-pomo-reset')) {
+    document.getElementById('btn-pomo-reset').onclick = () => {
+        isPomoRunning = false;
+        clearInterval(pomoInterval);
+        isPomoBreak = false;
+        pomoTimeLeft = POMO_WORK;
+        btnPomoStart.style.display = 'block';
+        btnPomoPause.style.display = 'none';
+        updatePomoUI();
+    };
+}
+
 // ====== INÍCIO DO SISTEMA ======
-carregarTarefas(); carregarMomentaneas(); carregarShoppingList(); carregarFinancas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
+carregarTarefas(); carregarMomentaneas(); carregarGameAlerts(); carregarAgenda(); carregarShoppingList(); carregarFinancas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();

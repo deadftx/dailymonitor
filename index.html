@@ -12,14 +12,29 @@
     <div id="bg-container"></div>
 
     <div class="content-area">
-        <div class="header-agenda">
+        <div class="header-agenda" style="position: relative;">
             <h1>Daily Monitor v1.1.0 by dead</h1>
-            <div style="display: flex; gap: 10px;">
-                <button id="btn-ytmusic" class="btn-icon">🎵 Yt Music</button>
-                <button id="btn-arquivados" class="btn-icon">📁 Histórico</button>
-                <button id="btn-financas" class="btn-icon">💰 Finanças</button>
-                <button id="btn-configuracoes" class="btn-icon">⚙️ Painel</button>
-                <button id="btn-nova-tarefa">+ Novo Alarme</button>
+            
+            <!-- Monitor de Clima Centralizado -->
+            <div id="weather-widget" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;" title="Atualizar clima">
+                <span id="weather-icon" style="font-size: 1.2rem;">🌤️</span>
+                <span id="weather-temp" style="font-size: 1.1rem;">--°C</span>
+                <span id="weather-desc" style="font-size: 0.8rem; opacity: 0.8; margin-left: 5px; text-transform: capitalize;">Buscando...</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-ytmusic" class="btn-icon">🎵 Yt Music</button>
+                    <button id="btn-arquivados" class="btn-icon">📁 Histórico</button>
+                    <button id="btn-financas" class="btn-icon">💰 Finanças</button>
+                    <button id="btn-configuracoes" class="btn-icon">⚙️ Painel</button>
+                    <button id="btn-nova-tarefa">+ Novo Alarme</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-agenda" class="btn-icon" style="background: rgba(46, 204, 113, 0.2); border-color: rgba(46, 204, 113, 0.4);">📅 Agenda</button>
+                    <button id="btn-alertas-games" class="btn-icon" style="background: rgba(155, 89, 182, 0.2); border-color: rgba(155, 89, 182, 0.4);">🔔 Alertas Gamers</button>
+                    <button id="btn-pomodoro" class="btn-icon" style="background: rgba(231, 76, 60, 0.6); border-color: rgba(231, 76, 60, 0.8); font-weight: bold;">🎯 FOCUS</button>
+                </div>
             </div>
         </div>
 
@@ -42,6 +57,11 @@
             <div class="np-info">
                 <span id="np-title" class="np-title">Título da Música</span>
                 <span id="np-artist" class="np-artist">Artista</span>
+            </div>
+            <div class="np-controls" style="display: flex; gap: 8px; margin-right: 15px;">
+                <button id="btn-yt-prev" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏮️</button>
+                <button id="btn-yt-playpause" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏸️</button>
+                <button id="btn-yt-next" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏭️</button>
             </div>
             <div class="playing-animation">
                 <div class="bar"></div>
@@ -183,6 +203,87 @@
         </div>
     </div>
 
+    <!-- MODAL GAMERS -->
+    <div id="modal-gamers" class="modal">
+        <div class="modal-content modal-large" style="border: 2px solid #9b59b6; box-shadow: 0 0 20px rgba(155, 89, 182, 0.4);">
+            <h2 style="color: #9b59b6;">🔔 Central de Alertas GAMERS</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="game-alert-name" placeholder="Ex: Boss Nasce, Reset Diário..." style="flex: 2;">
+                <input type="time" id="game-alert-time" style="flex: 1;">
+                <button id="btn-add-game-alert" class="btn-success" style="background-color: #9b59b6;">➕ Adicionar</button>
+            </div>
+            <div id="lista-gamers" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
+            <div class="modal-actions">
+                <button id="btn-fechar-gamers" class="btn-danger" style="width: 100%;">Fechar Central</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AGENDA -->
+    <div id="modal-agenda" class="modal">
+        <div class="modal-content modal-large" style="width: 80%; max-width: 1000px; height: 80%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #2ecc71; margin: 0;">📅 Agenda Mensal</h2>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button id="btn-agenda-prev" class="btn-icon">◀️</button>
+                    <span id="agenda-month-year" style="font-size: 1.5rem; font-weight: bold; width: 250px; text-align: center;">Mês Ano</span>
+                    <button id="btn-agenda-next" class="btn-icon">▶️</button>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; font-weight: bold; margin-bottom: 10px;">
+                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+            </div>
+            
+            <div id="agenda-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); auto-rows: 1fr; gap: 5px; flex: 1; overflow-y: auto;">
+                <!-- Dias gerados via JS -->
+            </div>
+            
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button id="btn-fechar-agenda" class="btn-danger" style="width: 100%;">Fechar Agenda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EVENTO AGENDA -->
+    <div id="modal-agenda-evento" class="modal" style="z-index: 1002;">
+        <div class="modal-content">
+            <h2 id="modal-agenda-titulo">Eventos do Dia</h2>
+            <div id="lista-eventos-dia" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;"></div>
+            <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 15px;">
+            <label>Novo Evento:</label>
+            <input type="text" id="agenda-evento-title" placeholder="Ex: Reunião">
+            <label>Hora (Opcional):</label>
+            <input type="time" id="agenda-evento-time">
+            <div class="modal-actions">
+                <button id="btn-salvar-evento" class="btn-success">Adicionar</button>
+                <button id="btn-fechar-evento" class="btn-danger">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL POMODORO FOCUS -->
+    <div id="modal-pomodoro" class="modal" style="background-color: rgba(0,0,0,0.85); backdrop-filter: blur(10px);">
+        <div class="modal-content" style="background: transparent; box-shadow: none; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <h2 id="pomodoro-status" style="color: #ff4757; font-size: 3rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px #ff4757;">FOCUS</h2>
+            
+            <div style="position: relative; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 40px;">
+                <svg width="300" height="300" style="position: absolute; top:0; left:0; transform: rotate(-90deg);">
+                    <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="15" />
+                    <circle id="pomodoro-circle" cx="150" cy="150" r="140" fill="none" stroke="#ff4757" stroke-width="15" stroke-dasharray="879.64" stroke-dashoffset="0" style="transition: stroke-dashoffset 1s linear; stroke-linecap: round;" />
+                </svg>
+                <div id="pomodoro-time" style="font-size: 6rem; font-weight: bold; font-family: monospace; z-index: 10;">25:00</div>
+            </div>
+
+            <div style="display: flex; gap: 20px;">
+                <button id="btn-pomo-start" class="btn-success" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px;">▶️ Iniciar</button>
+                <button id="btn-pomo-pause" class="btn-icon" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px; display: none;">⏸️ Pausar</button>
+                <button id="btn-pomo-reset" class="btn-danger" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px;">🔄 Resetar</button>
+                <button id="btn-fechar-pomodoro" class="btn-icon" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px; background: rgba(255,255,255,0.2);">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-shopping" class="modal">
         <div class="modal-content">
             <h2 id="modal-shopping-titulo">Adicionar Item</h2>
@@ -238,14 +339,14 @@
                     <div class="fin-card-footer" id="fin-contas-count">0 contas</div>
                 </div>
 
-                <!-- LIMITE DISPONÍVEL -->
+                <!-- FATURAS -->
                 <div class="fin-card">
                     <div class="fin-card-header">
-                        <span>LIMITE TOTAL DISPONÍVEL</span>
+                        <span>FATURAS DO MÊS</span>
                         <button class="btn-fin-add" id="btn-add-cartao">➕</button>
                     </div>
-                    <div class="fin-saldo-total" id="fin-total-limite">R$ 0,00</div>
-                    <div class="fin-subtext-block" id="fin-limite-desc">de R$ 0,00 de limite total</div>
+                    <div class="fin-saldo-total" id="fin-total-limite" style="color: #ff4d4d;">R$ 0,00</div>
+                    <div class="fin-subtext-block" id="fin-limite-desc">total a pagar nos cartões</div>
 
                     <div class="fin-list" id="lista-cartoes">
                         <!-- Itens gerados dinamicamente -->
@@ -338,9 +439,9 @@
             <input type="text" id="fin-cartao-nome" placeholder="Ex: Nubank Platinum">
             <label>Subtítulo (Vencimento):</label>
             <input type="text" id="fin-cartao-sub" placeholder="Ex: **** 3630 - Vence 08 jun">
-            <label>Limite Total (R$):</label>
+            <label>Limite do Cartão (R$):</label>
             <input type="number" step="0.01" id="fin-cartao-limite-total" value="0.00">
-            <label>Limite Disponível (R$):</label>
+            <label>Fatura Atual (R$):</label>
             <input type="number" step="0.01" id="fin-cartao-limite-disp" value="0.00">
             <div class="modal-actions">
                 <button id="btn-salvar-cartao" class="btn-success">Salvar</button>
