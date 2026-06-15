@@ -15,7 +15,9 @@
         <div class="header-agenda">
             <h1>Daily Monitor v1.1.0 by dead</h1>
             <div style="display: flex; gap: 10px;">
+                <button id="btn-ytmusic" class="btn-icon">🎵 Yt Music</button>
                 <button id="btn-arquivados" class="btn-icon">📁 Histórico</button>
+                <button id="btn-financas" class="btn-icon">💰 Finanças</button>
                 <button id="btn-configuracoes" class="btn-icon">⚙️ Painel</button>
                 <button id="btn-nova-tarefa">+ Novo Alarme</button>
             </div>
@@ -29,11 +31,24 @@
         <div id="shopping-container" class="shopping-container">
             <div class="shopping-header">
                 🛒 Lista de Compras
-                <button id="btn-add-shopping" class="btn-icon" style="padding: 2px 8px; font-size: 0.8rem; margin-left: 10px;">+ Novo</button>
+                <button id="btn-add-shopping" class="btn-icon"
+                    style="padding: 2px 8px; font-size: 0.8rem; margin-left: 10px;">+ Novo</button>
             </div>
             <div id="lista-shopping" class="shopping-list"></div>
         </div>
 
+        <div id="now-playing-container" class="now-playing-container" style="display: none;">
+            <img id="np-cover" src="" alt="Capa" class="np-cover">
+            <div class="np-info">
+                <span id="np-title" class="np-title">Título da Música</span>
+                <span id="np-artist" class="np-artist">Artista</span>
+            </div>
+            <div class="playing-animation">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+        </div>
         <div id="clock-container">00:00</div>
 
         <div id="momentary-container" class="momentary-container">
@@ -138,8 +153,10 @@
             </div>
             <label>Monitor Padrão:</label>
             <select id="config-monitor" class="custom-select"></select>
-            <label>Saída de Áudio:</label>
+            <label>Saída de Áudio (DailyMonitor):</label>
             <select id="config-audio" class="custom-select"></select>
+            <label>Saída de Áudio (YouTube Music):</label>
+            <select id="config-audio-yt" class="custom-select"></select>
             <label>Wallpaper:</label>
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <button id="btn-escolher-wp" class="btn-success" style="flex: 1; font-size: 1rem;">📁 Escolher</button>
@@ -169,10 +186,10 @@
     <div id="modal-shopping" class="modal">
         <div class="modal-content">
             <h2 id="modal-shopping-titulo">Adicionar Item</h2>
-            
+
             <label>Nome do Item:</label>
             <input type="text" id="shop-nome" placeholder="Ex: Teclado Mecânico">
-            
+
             <div class="linha-flex" style="gap: 15px;">
                 <div style="flex: 1; display: flex; flex-direction: column;">
                     <label>Valor:</label>
@@ -194,6 +211,187 @@
                 <button id="btn-salvar-shopping" class="btn-success">Salvar</button>
                 <button id="btn-fechar-shopping" class="btn-danger">Cancelar</button>
             </div>
+        </div>
+    </div>
+
+    <div id="modal-financas" class="modal">
+        <div class="modal-content modal-financas-content">
+            <div class="financas-header">
+                <h2>Administração de Finanças</h2>
+                <div class="financas-mes-atual" id="fin-mes-atual">Mês Atual</div>
+                <button id="btn-fechar-financas" class="btn-danger" style="padding: 5px 10px;">X</button>
+            </div>
+
+            <div class="financas-grid">
+                <!-- CONTAS CORRENTES -->
+                <div class="fin-card">
+                    <div class="fin-card-header">
+                        <span>CONTAS CORRENTES</span>
+                        <button class="btn-fin-add" id="btn-add-conta">➕</button>
+                    </div>
+                    <div class="fin-saldo-total" id="fin-total-contas">R$ 0,00 <span class="fin-subtext">saldo
+                            total</span></div>
+
+                    <div class="fin-list" id="lista-contas">
+                        <!-- Itens gerados dinamicamente -->
+                    </div>
+                    <div class="fin-card-footer" id="fin-contas-count">0 contas</div>
+                </div>
+
+                <!-- LIMITE DISPONÍVEL -->
+                <div class="fin-card">
+                    <div class="fin-card-header">
+                        <span>LIMITE TOTAL DISPONÍVEL</span>
+                        <button class="btn-fin-add" id="btn-add-cartao">➕</button>
+                    </div>
+                    <div class="fin-saldo-total" id="fin-total-limite">R$ 0,00</div>
+                    <div class="fin-subtext-block" id="fin-limite-desc">de R$ 0,00 de limite total</div>
+
+                    <div class="fin-list" id="lista-cartoes">
+                        <!-- Itens gerados dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- GANHOS -->
+                <div class="fin-card">
+                    <div class="fin-card-header">
+                        <span>RECEITAS E GANHOS</span>
+                        <button class="btn-fin-add" id="btn-add-ganho">➕</button>
+                    </div>
+                    <div class="fin-saldo-total" id="fin-total-ganhos">R$ 0,00 <span class="fin-subtext">total de
+                            receitas</span></div>
+
+                    <div class="fin-list" id="lista-ganhos">
+                        <!-- Itens gerados dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- PROJEÇÃO DO MÊS -->
+                <div class="fin-card">
+                    <div class="fin-card-header">
+                        <span>PROJEÇÃO DO MÊS</span>
+                    </div>
+                    <div class="fin-saldo-total" id="fin-total-projecao">R$ 0,00</div>
+                    <div class="fin-subtext-block" id="fin-projecao-desc">após pagar dívidas e assinaturas do mês</div>
+
+                    <div
+                        style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #1f1f1f; padding-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: #888;">Entradas (Ganhos)</span>
+                            <span id="proj-entradas" style="color: var(--accent-color); font-weight: bold;">R$
+                                0,00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: #888;">Saídas (Dívidas)</span>
+                            <span id="proj-saidas" style="color: #ff4444; font-weight: bold;">- R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ASSINATURAS E DÍVIDAS -->
+                <div class="fin-card fin-card-full">
+                    <div class="fin-card-header">
+                        <span>ASSINATURAS E DÍVIDAS</span>
+                        <div style="display:flex; gap:10px;">
+                            <span class="fin-link">ver todas ↗</span>
+                            <button class="btn-fin-add" id="btn-add-assinatura">➕</button>
+                        </div>
+                    </div>
+                    <div class="fin-saldo-total" id="fin-total-assinaturas" style="display:flex; align-items:baseline;">
+                        R$ 0,00 <span class="fin-subtext" style="margin-left:10px;" id="fin-assinaturas-desc">/mês • 0
+                            ativas</span>
+                    </div>
+
+                    <div class="fin-list" id="lista-assinaturas">
+                        <!-- Itens gerados dinamicamente -->
+                    </div>
+                    <div class="fin-card-footer" style="display:flex; justify-content:space-between;">
+                        <span id="fin-assinaturas-count">+0 assinaturas</span>
+                        <span class="fin-link">ver todas ↗</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais de Edição de Finanças -->
+    <div id="modal-edit-conta" class="modal" style="z-index: 1001;">
+        <div class="modal-content">
+            <h2 id="modal-conta-titulo">Adicionar Conta</h2>
+            <label>Nome do Banco / Instituição:</label>
+            <input type="text" id="fin-conta-nome" placeholder="Ex: Nubank">
+            <label>Tipo de Conta:</label>
+            <input type="text" id="fin-conta-tipo" placeholder="Ex: Conta corrente, Poupança">
+            <label>Saldo Atual (R$):</label>
+            <input type="number" step="0.01" id="fin-conta-saldo" value="0.00">
+            <div class="modal-actions">
+                <button id="btn-salvar-conta" class="btn-success">Salvar</button>
+                <button id="btn-fechar-conta" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edit-cartao" class="modal" style="z-index: 1001;">
+        <div class="modal-content">
+            <h2 id="modal-cartao-titulo">Adicionar Cartão</h2>
+            <label>Nome do Cartão:</label>
+            <input type="text" id="fin-cartao-nome" placeholder="Ex: Nubank Platinum">
+            <label>Subtítulo (Vencimento):</label>
+            <input type="text" id="fin-cartao-sub" placeholder="Ex: **** 3630 - Vence 08 jun">
+            <label>Limite Total (R$):</label>
+            <input type="number" step="0.01" id="fin-cartao-limite-total" value="0.00">
+            <label>Limite Disponível (R$):</label>
+            <input type="number" step="0.01" id="fin-cartao-limite-disp" value="0.00">
+            <div class="modal-actions">
+                <button id="btn-salvar-cartao" class="btn-success">Salvar</button>
+                <button id="btn-fechar-cartao" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edit-assinatura" class="modal" style="z-index: 1001;">
+        <div class="modal-content">
+            <h2 id="modal-assinatura-titulo">Adicionar Assinatura/Dívida</h2>
+            <label>Nome:</label>
+            <input type="text" id="fin-ass-nome" placeholder="Ex: Google One">
+            <label>Subtítulo / Vencimento:</label>
+            <input type="text" id="fin-ass-sub" placeholder="Ex: Próximo: 15 Jun">
+            <label>Valor (R$):</label>
+            <input type="number" step="0.01" id="fin-ass-valor" value="0.00">
+            <div class="modal-actions">
+                <button id="btn-salvar-assinatura" class="btn-success">Salvar</button>
+                <button id="btn-fechar-assinatura" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edit-ganho" class="modal" style="z-index: 1001;">
+        <div class="modal-content">
+            <h2 id="modal-ganho-titulo">Adicionar Ganho/Receita</h2>
+            <label>Nome / Origem:</label>
+            <input type="text" id="fin-ganho-nome" placeholder="Ex: Salário, Freela">
+            <label>Subtítulo / Frequência:</label>
+            <input type="text" id="fin-ganho-sub" placeholder="Ex: Fixo, Variável">
+            <label>Valor (R$):</label>
+            <input type="number" step="0.01" id="fin-ganho-valor" value="0.00">
+            <div class="modal-actions">
+                <button id="btn-salvar-ganho" class="btn-success">Salvar</button>
+                <button id="btn-fechar-ganho" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- YouTube Music Modal -->
+    <div id="modal-ytmusic" class="modal">
+        <div class="modal-content"
+            style="width: 90vw; height: 90vh; max-width: 1400px; display: flex; flex-direction: column; padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">YouTube Music</h2>
+                <button id="btn-fechar-ytmusic" class="btn-danger" style="padding: 5px 10px;">Fechar</button>
+            </div>
+            <webview id="yt-webview" src="https://music.youtube.com"
+                useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15"
+                style="flex-grow: 1; border-radius: 8px; border: 1px solid #333;" allowpopups disablewebsecurity webpreferences="allowRunningInsecureContent=yes"></webview>
         </div>
     </div>
 

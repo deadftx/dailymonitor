@@ -4,6 +4,7 @@ const path = require('path');
 let mainWindow;
 
 function createWindow() {
+    // A configuração limpa foi restaurada para o webview herdar o modo de compatibilidade
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
@@ -12,7 +13,8 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: false
+            webSecurity: false,
+            webviewTag: true
         }
     });
 
@@ -21,6 +23,16 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    require('electron').session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+        if (permission === 'media' || permission === 'mediaKeySystem') {
+            return callback(true);
+        }
+        callback(false);
+    });
+    require('electron').session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+        return true;
+    });
+
     createWindow();
 
     // NOVO: Chama a janela nativa do Windows para escolher ficheiros

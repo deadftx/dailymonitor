@@ -6,6 +6,8 @@ let configApp = {
     autostart: false,
     monitorId: "",
     audioDeviceId: "default",
+    audioDeviceIdYt: "default",
+    audioDeviceLabelYt: "",
     wallpaperPath: "",
     wallpaperOpacity: 0.5
 };
@@ -74,10 +76,13 @@ async function carregarAudiosNoMenu() {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const outputDevices = devices.filter(d => d.kind === 'audiooutput');
         const selectAudio = document.getElementById('config-audio');
+        const selectAudioYt = document.getElementById('config-audio-yt');
         selectAudio.innerHTML = '<option value="default">Padrão</option>';
+        if (selectAudioYt) selectAudioYt.innerHTML = '<option value="default">Padrão</option>';
         outputDevices.forEach(d => {
             if (d.deviceId !== "default" && d.deviceId !== "communications") {
                 selectAudio.innerHTML += `<option value="${d.deviceId}" ${configApp.audioDeviceId === d.deviceId ? 'selected' : ''}>${d.label || 'Unknown'}</option>`;
+                if (selectAudioYt) selectAudioYt.innerHTML += `<option value="${d.deviceId}" ${configApp.audioDeviceIdYt === d.deviceId ? 'selected' : ''}>${d.label || 'Unknown'}</option>`;
             }
         });
     } catch (e) { }
@@ -106,10 +111,18 @@ document.getElementById('btn-salvar-config').onclick = () => {
     configApp.autostart = document.getElementById('config-autostart').checked;
     configApp.monitorId = document.getElementById('config-monitor').value;
     configApp.audioDeviceId = document.getElementById('config-audio').value;
-    configApp.wallpaperOpacity = document.getElementById('config-opacidade').value;
+    if (document.getElementById('config-audio-yt')) {
+        let ytSel = document.getElementById('config-audio-yt');
+        configApp.audioDeviceIdYt = ytSel.value;
+        configApp.audioDeviceLabelYt = ytSel.options[ytSel.selectedIndex].text;
+    }
     configApp.wallpaperPath = caminhoWallpaperTemporario;
+    configApp.wallpaperOpacity = document.getElementById('config-opacidade').value;
+
     localStorage.setItem('tv_config', JSON.stringify(configApp));
-    carregarConfiguracoes(); modalConfig.style.display = 'none';
+    modalConfig.style.display = 'none';
+
+    carregarConfiguracoes();
 };
 
 // ====== VARIÁVEIS GLOBAIS DA AGENDA ======
@@ -446,19 +459,19 @@ function renderizarShoppingList() {
     const lista = document.getElementById('lista-shopping');
     if (!lista) return;
     lista.innerHTML = '';
-    
+
     shoppingList.forEach(item => {
         const div = document.createElement('div');
         div.className = 'shopping-item';
-        
+
         let urlClick = item.link ? `onclick="if(!event.target.closest('button')) window.open('${item.link}', '_blank')"` : '';
         let estiloCursor = item.link ? 'cursor: pointer;' : '';
-        
+
         let classeVencido = '';
         if (item.data) {
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
-            
+
             const partes = item.data.split('-');
             if (partes.length === 3) {
                 const dataLimite = new Date(partes[0], partes[1] - 1, partes[2]);
@@ -468,7 +481,7 @@ function renderizarShoppingList() {
                 }
             }
         }
-        
+
         if (classeVencido) div.classList.add(classeVencido);
 
         div.innerHTML = `
@@ -503,14 +516,14 @@ function abrirEdicaoShopping(id) {
     const s = shoppingList.find(x => x.id === id);
     if (!s) return;
     shopIdEmEdicao = id;
-    
+
     document.getElementById('modal-shopping-titulo').innerText = "Editar Item";
     document.getElementById('shop-nome').value = s.nome || "";
     document.getElementById('shop-valor').value = s.valor || "";
     document.getElementById('shop-qtd').value = s.qtd || "1";
     document.getElementById('shop-link').value = s.link || "";
     document.getElementById('shop-data').value = s.data || "";
-    
+
     modalShopping.style.display = 'flex';
 }
 
@@ -523,7 +536,7 @@ if (document.getElementById('btn-add-shopping')) {
         document.getElementById('shop-qtd').value = "1";
         document.getElementById('shop-link').value = "";
         document.getElementById('shop-data').value = "";
-        
+
         modalShopping.style.display = 'flex';
     };
 }
@@ -557,5 +570,395 @@ if (document.getElementById('btn-salvar-shopping')) {
     };
 }
 
+// ====== MOTOR DE FINANÇAS ======
+let financas = { contas: [], cartoes: [], assinaturas: [], ganhos: [] };
+let finEditId = null;
+let finEditType = null; // 'conta', 'cartao', 'assinatura', 'ganho'
+
+const modalFinancas = document.getElementById('modal-financas');
+
+function carregarFinancas() {
+    const salvo = localStorage.getItem('tv_financas');
+    if (salvo) {
+        financas = JSON.parse(salvo);
+        if (!financas.ganhos) financas.ganhos = [];
+    }
+    renderizarFinancas();
+}
+
+function salvarFinancas() {
+    localStorage.setItem('tv_financas', JSON.stringify(financas));
+}
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+}
+
+function getInitialsAndColor(name) {
+    if (!name) return { initial: '?', color: '#555' };
+    const n = name.toUpperCase();
+    const initial = n.charAt(0);
+    const colors = ['#8A05BE', '#FF5A5F', '#00A86B', '#1DA1F2', '#E1306C', '#FF0000', '#F5A623', '#4A90E2'];
+    const idx = n.charCodeAt(0) % colors.length;
+    return { initial, color: colors[idx] };
+}
+
+function renderizarFinancas() {
+    // Atualizar Mês
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const hoje = new Date();
+    const mesText = `${meses[hoje.getMonth()]} ${hoje.getFullYear()}`;
+    const elMes = document.getElementById('fin-mes-atual');
+    if (elMes) elMes.innerText = mesText;
+
+    // CONTAS
+    let totalContas = 0;
+    const listaContas = document.getElementById('lista-contas');
+    if (listaContas) listaContas.innerHTML = '';
+    financas.contas.forEach(c => {
+        totalContas += parseFloat(c.saldo || 0);
+        const { initial, color } = getInitialsAndColor(c.nome);
+        const div = document.createElement('div'); div.className = 'fin-item';
+        div.innerHTML = `
+            <div class="fin-item-left">
+                <div class="fin-icon" style="background-color: ${color};">${initial}</div>
+                <div class="fin-item-info">
+                    <span class="fin-item-name">${c.nome}</span>
+                    <span class="fin-item-sub">${c.tipo}</span>
+                </div>
+            </div>
+            <div class="fin-item-value-box">
+                <span class="fin-item-value">${formatCurrency(c.saldo)}</span>
+                <div class="fin-actions-hover">
+                    <button class="btn-fin-edit" onclick="abrirEditFin('conta', ${c.id})">✏️</button>
+                    <button class="btn-fin-del" onclick="deletarFin('conta', ${c.id})">🗑️</button>
+                </div>
+            </div>
+        `;
+        if (listaContas) listaContas.appendChild(div);
+    });
+    const elTotContas = document.getElementById('fin-total-contas');
+    if (elTotContas) elTotContas.innerHTML = `${formatCurrency(totalContas)} <span class="fin-subtext">saldo total</span>`;
+    const elCountContas = document.getElementById('fin-contas-count');
+    if (elCountContas) elCountContas.innerText = `${financas.contas.length} contas`;
+
+    // CARTÕES
+    let totalLimiteDisp = 0;
+    let totalLimiteReal = 0;
+    const listaCartoes = document.getElementById('lista-cartoes');
+    if (listaCartoes) listaCartoes.innerHTML = '';
+    financas.cartoes.forEach(c => {
+        totalLimiteDisp += parseFloat(c.limiteDisp || 0);
+        totalLimiteReal += parseFloat(c.limiteTotal || 0);
+        const { initial, color } = getInitialsAndColor(c.nome);
+        const div = document.createElement('div'); div.className = 'fin-item';
+        div.innerHTML = `
+            <div class="fin-item-left">
+                <div class="fin-icon" style="background-color: ${color};">${initial}</div>
+                <div class="fin-item-info">
+                    <span class="fin-item-name">${c.nome}</span>
+                    <span class="fin-item-sub">${c.sub}</span>
+                </div>
+            </div>
+            <div class="fin-item-value-box">
+                <span class="fin-item-value">${formatCurrency(c.limiteDisp)}</span>
+                <span class="fin-item-value-sub">disponível</span>
+                <div class="fin-actions-hover">
+                    <button class="btn-fin-edit" onclick="abrirEditFin('cartao', ${c.id})">✏️</button>
+                    <button class="btn-fin-del" onclick="deletarFin('cartao', ${c.id})">🗑️</button>
+                </div>
+            </div>
+        `;
+        if (listaCartoes) listaCartoes.appendChild(div);
+    });
+    const elTotLimite = document.getElementById('fin-total-limite');
+    if (elTotLimite) elTotLimite.innerText = formatCurrency(totalLimiteDisp);
+    const elDescLimite = document.getElementById('fin-limite-desc');
+    if (elDescLimite) elDescLimite.innerText = `de ${formatCurrency(totalLimiteReal)} de limite total`;
+
+    // ASSINATURAS E DÍVIDAS
+    let totalAss = 0;
+    const listaAss = document.getElementById('lista-assinaturas');
+    if (listaAss) listaAss.innerHTML = '';
+    financas.assinaturas.forEach(a => {
+        totalAss += parseFloat(a.valor || 0);
+        const { initial, color } = getInitialsAndColor(a.nome);
+        const div = document.createElement('div'); div.className = 'fin-item';
+        div.innerHTML = `
+            <div class="fin-item-left">
+                <div class="fin-icon" style="background-color: ${color};">${initial}</div>
+                <div class="fin-item-info">
+                    <span class="fin-item-name">${a.nome}</span>
+                    <span class="fin-item-sub">🗓️ ${a.sub}</span>
+                </div>
+            </div>
+            <div class="fin-item-value-box">
+                <span class="fin-item-value">${formatCurrency(a.valor)}</span>
+                <div class="fin-actions-hover">
+                    <button class="btn-fin-edit" onclick="abrirEditFin('assinatura', ${a.id})">✏️</button>
+                    <button class="btn-fin-del" onclick="deletarFin('assinatura', ${a.id})">🗑️</button>
+                </div>
+            </div>
+        `;
+        if (listaAss) listaAss.appendChild(div);
+    });
+    const elTotAss = document.getElementById('fin-total-assinaturas');
+    if (elTotAss) elTotAss.innerHTML = `${formatCurrency(totalAss)} <span class="fin-subtext" style="margin-left:10px;">/mês • ${financas.assinaturas.length} ativas</span>`;
+    const elCountAss = document.getElementById('fin-assinaturas-count');
+    if (elCountAss) elCountAss.innerText = `${financas.assinaturas.length} assinaturas/dívidas`;
+
+    // GANHOS
+    let totalGanhos = 0;
+    const listaGanhos = document.getElementById('lista-ganhos');
+    if (listaGanhos) listaGanhos.innerHTML = '';
+    financas.ganhos.forEach(g => {
+        totalGanhos += parseFloat(g.valor || 0);
+        const { initial, color } = getInitialsAndColor(g.nome);
+        const div = document.createElement('div'); div.className = 'fin-item';
+        div.innerHTML = `
+            <div class="fin-item-left">
+                <div class="fin-icon" style="background-color: ${color};">${initial}</div>
+                <div class="fin-item-info">
+                    <span class="fin-item-name">${g.nome}</span>
+                    <span class="fin-item-sub">💰 ${g.sub}</span>
+                </div>
+            </div>
+            <div class="fin-item-value-box">
+                <span class="fin-item-value">${formatCurrency(g.valor)}</span>
+                <div class="fin-actions-hover">
+                    <button class="btn-fin-edit" onclick="abrirEditFin('ganho', ${g.id})">✏️</button>
+                    <button class="btn-fin-del" onclick="deletarFin('ganho', ${g.id})">🗑️</button>
+                </div>
+            </div>
+        `;
+        if (listaGanhos) listaGanhos.appendChild(div);
+    });
+    const elTotGanhos = document.getElementById('fin-total-ganhos');
+    if (elTotGanhos) elTotGanhos.innerHTML = `${formatCurrency(totalGanhos)} <span class="fin-subtext">total de receitas</span>`;
+
+    // PROJEÇÃO DO MÊS
+    const projecao = totalGanhos - totalAss;
+    const elTotProj = document.getElementById('fin-total-projecao');
+    if (elTotProj) {
+        elTotProj.innerText = formatCurrency(projecao);
+        elTotProj.style.color = projecao >= 0 ? 'var(--accent-color)' : '#ff4444';
+    }
+    if (document.getElementById('proj-entradas')) document.getElementById('proj-entradas').innerText = formatCurrency(totalGanhos);
+    if (document.getElementById('proj-saidas')) document.getElementById('proj-saidas').innerText = `- ${formatCurrency(totalAss)}`;
+}
+
+function deletarFin(tipo, id) {
+    if (tipo === 'conta') financas.contas = financas.contas.filter(x => x.id !== id);
+    if (tipo === 'cartao') financas.cartoes = financas.cartoes.filter(x => x.id !== id);
+    if (tipo === 'assinatura') financas.assinaturas = financas.assinaturas.filter(x => x.id !== id);
+    if (tipo === 'ganho') financas.ganhos = financas.ganhos.filter(x => x.id !== id);
+    salvarFinancas();
+    renderizarFinancas();
+}
+
+function abrirEditFin(tipo, id) {
+    finEditType = tipo;
+    finEditId = id;
+    let item = null;
+
+    if (tipo === 'conta') {
+        if (id) item = financas.contas.find(x => x.id === id);
+        document.getElementById('modal-conta-titulo').innerText = id ? "Editar Conta" : "Adicionar Conta";
+        document.getElementById('fin-conta-nome').value = item ? item.nome : "";
+        document.getElementById('fin-conta-tipo').value = item ? item.tipo : "";
+        document.getElementById('fin-conta-saldo').value = item ? item.saldo : "0.00";
+        document.getElementById('modal-edit-conta').style.display = 'flex';
+    } else if (tipo === 'cartao') {
+        if (id) item = financas.cartoes.find(x => x.id === id);
+        document.getElementById('modal-cartao-titulo').innerText = id ? "Editar Cartão" : "Adicionar Cartão";
+        document.getElementById('fin-cartao-nome').value = item ? item.nome : "";
+        document.getElementById('fin-cartao-sub').value = item ? item.sub : "";
+        document.getElementById('fin-cartao-limite-total').value = item ? item.limiteTotal : "0.00";
+        document.getElementById('fin-cartao-limite-disp').value = item ? item.limiteDisp : "0.00";
+        document.getElementById('modal-edit-cartao').style.display = 'flex';
+    } else if (tipo === 'assinatura') {
+        if (id) item = financas.assinaturas.find(x => x.id === id);
+        document.getElementById('modal-assinatura-titulo').innerText = id ? "Editar Assinatura" : "Adicionar Assinatura";
+        document.getElementById('fin-ass-nome').value = item ? item.nome : "";
+        document.getElementById('fin-ass-sub').value = item ? item.sub : "";
+        document.getElementById('fin-ass-valor').value = item ? item.valor : "0.00";
+        document.getElementById('modal-edit-assinatura').style.display = 'flex';
+    } else if (tipo === 'ganho') {
+        if (id) item = financas.ganhos.find(x => x.id === id);
+        document.getElementById('modal-ganho-titulo').innerText = id ? "Editar Receita" : "Adicionar Receita";
+        document.getElementById('fin-ganho-nome').value = item ? item.nome : "";
+        document.getElementById('fin-ganho-sub').value = item ? item.sub : "";
+        document.getElementById('fin-ganho-valor').value = item ? item.valor : "0.00";
+        document.getElementById('modal-edit-ganho').style.display = 'flex';
+    }
+}
+
+// Botões para abrir modais de adição
+if (document.getElementById('btn-add-conta')) document.getElementById('btn-add-conta').onclick = () => abrirEditFin('conta', null);
+if (document.getElementById('btn-add-cartao')) document.getElementById('btn-add-cartao').onclick = () => abrirEditFin('cartao', null);
+if (document.getElementById('btn-add-assinatura')) document.getElementById('btn-add-assinatura').onclick = () => abrirEditFin('assinatura', null);
+if (document.getElementById('btn-add-ganho')) document.getElementById('btn-add-ganho').onclick = () => abrirEditFin('ganho', null);
+
+// Fechar modais
+if (document.getElementById('btn-fechar-conta')) document.getElementById('btn-fechar-conta').onclick = () => document.getElementById('modal-edit-conta').style.display = 'none';
+if (document.getElementById('btn-fechar-cartao')) document.getElementById('btn-fechar-cartao').onclick = () => document.getElementById('modal-edit-cartao').style.display = 'none';
+if (document.getElementById('btn-fechar-assinatura')) document.getElementById('btn-fechar-assinatura').onclick = () => document.getElementById('modal-edit-assinatura').style.display = 'none';
+if (document.getElementById('btn-fechar-ganho')) document.getElementById('btn-fechar-ganho').onclick = () => document.getElementById('modal-edit-ganho').style.display = 'none';
+
+// Salvar Conta
+if (document.getElementById('btn-salvar-conta')) {
+    document.getElementById('btn-salvar-conta').onclick = () => {
+        const nome = document.getElementById('fin-conta-nome').value.trim();
+        const tipo = document.getElementById('fin-conta-tipo').value.trim();
+        const saldo = parseFloat(document.getElementById('fin-conta-saldo').value || 0);
+        if (!nome) return alert("Preencha o nome!");
+
+        if (finEditId) {
+            const idx = financas.contas.findIndex(x => x.id === finEditId);
+            if (idx !== -1) financas.contas[idx] = { id: finEditId, nome, tipo, saldo };
+        } else {
+            financas.contas.push({ id: Date.now(), nome, tipo, saldo });
+        }
+        salvarFinancas(); renderizarFinancas(); document.getElementById('modal-edit-conta').style.display = 'none';
+    };
+}
+
+// Salvar Cartão
+if (document.getElementById('btn-salvar-cartao')) {
+    document.getElementById('btn-salvar-cartao').onclick = () => {
+        const nome = document.getElementById('fin-cartao-nome').value.trim();
+        const sub = document.getElementById('fin-cartao-sub').value.trim();
+        const limiteTotal = parseFloat(document.getElementById('fin-cartao-limite-total').value || 0);
+        const limiteDisp = parseFloat(document.getElementById('fin-cartao-limite-disp').value || 0);
+        if (!nome) return alert("Preencha o nome!");
+
+        if (finEditId) {
+            const idx = financas.cartoes.findIndex(x => x.id === finEditId);
+            if (idx !== -1) financas.cartoes[idx] = { id: finEditId, nome, sub, limiteTotal, limiteDisp };
+        } else {
+            financas.cartoes.push({ id: Date.now(), nome, sub, limiteTotal, limiteDisp });
+        }
+        salvarFinancas(); renderizarFinancas(); document.getElementById('modal-edit-cartao').style.display = 'none';
+    };
+}
+
+// Salvar Assinatura
+if (document.getElementById('btn-salvar-assinatura')) {
+    document.getElementById('btn-salvar-assinatura').onclick = () => {
+        const nome = document.getElementById('fin-ass-nome').value.trim();
+        const sub = document.getElementById('fin-ass-sub').value.trim();
+        const valor = parseFloat(document.getElementById('fin-ass-valor').value || 0);
+        if (!nome) return alert("Preencha o nome!");
+
+        if (finEditId) {
+            const idx = financas.assinaturas.findIndex(x => x.id === finEditId);
+            if (idx !== -1) financas.assinaturas[idx] = { id: finEditId, nome, sub, valor };
+        } else {
+            financas.assinaturas.push({ id: Date.now(), nome, sub, valor });
+        }
+        salvarFinancas(); renderizarFinancas(); document.getElementById('modal-edit-assinatura').style.display = 'none';
+    };
+}
+
+// Salvar Ganho
+if (document.getElementById('btn-salvar-ganho')) {
+    document.getElementById('btn-salvar-ganho').onclick = () => {
+        const nome = document.getElementById('fin-ganho-nome').value.trim();
+        const sub = document.getElementById('fin-ganho-sub').value.trim();
+        const valor = parseFloat(document.getElementById('fin-ganho-valor').value || 0);
+        if (!nome) return alert("Preencha o nome!");
+
+        if (finEditId) {
+            const idx = financas.ganhos.findIndex(x => x.id === finEditId);
+            if (idx !== -1) financas.ganhos[idx] = { id: finEditId, nome, sub, valor };
+        } else {
+            financas.ganhos.push({ id: Date.now(), nome, sub, valor });
+        }
+        salvarFinancas(); renderizarFinancas(); document.getElementById('modal-edit-ganho').style.display = 'none';
+    };
+}
+
+// Lógica de Menu Finanças
+if (document.getElementById('btn-financas')) {
+    document.getElementById('btn-financas').onclick = () => {
+        renderizarFinancas();
+        modalFinancas.style.display = 'flex';
+    };
+}
+if (document.getElementById('btn-fechar-financas')) {
+    document.getElementById('btn-fechar-financas').onclick = () => {
+        modalFinancas.style.display = 'none';
+    };
+}
+
+// ====== YOUTUBE MUSIC ======
+const modalYtMusic = document.getElementById('modal-ytmusic');
+const ytWebview = document.getElementById('yt-webview');
+const nowPlayingContainer = document.getElementById('now-playing-container');
+
+if (document.getElementById('btn-ytmusic')) {
+    document.getElementById('btn-ytmusic').onclick = () => {
+        modalYtMusic.style.display = 'flex';
+    };
+}
+
+if (document.getElementById('btn-fechar-ytmusic')) {
+    document.getElementById('btn-fechar-ytmusic').onclick = () => {
+        modalYtMusic.style.display = 'none';
+    };
+}
+
+setInterval(() => {
+    if (ytWebview && ytWebview.executeJavaScript) {
+        ytWebview.executeJavaScript(`
+            (function() {
+                try {
+                    let video = document.querySelector('video');
+                    if (video && typeof video.setSinkId === 'function') {
+                        let targetId = '${configApp.audioDeviceIdYt || 'default'}';
+                        let targetLabel = '${configApp.audioDeviceLabelYt || ''}';
+                        if (video.sinkId !== targetId) {
+                            video.setSinkId(targetId).catch(err => {
+                                navigator.mediaDevices.enumerateDevices().then(devices => {
+                                    let dev = devices.find(d => d.label === targetLabel);
+                                    if(dev && video.sinkId !== dev.deviceId) {
+                                        video.setSinkId(dev.deviceId).catch(e => {});
+                                    }
+                                }).catch(e => {});
+                            });
+                        }
+                    }
+                    if (video && !video.paused) {
+                        let titleEl = document.querySelector('yt-formatted-string.title.ytmusic-player-bar');
+                        let artistEl = document.querySelector('span.subtitle.ytmusic-player-bar');
+                        let imgEl = document.querySelector('ytmusic-player-bar img');
+                        
+                        return { 
+                            title: titleEl ? titleEl.innerText : 'Música', 
+                            artist: artistEl ? artistEl.innerText.split('•')[0].trim() : 'Artista', 
+                            img: imgEl ? imgEl.src : '', 
+                            isPlaying: true 
+                        };
+                    }
+                    return { isPlaying: false };
+                } catch(e) { return { isPlaying: false }; }
+            })()
+        `).then(result => {
+            if (result && result.isPlaying) {
+                if (nowPlayingContainer.style.display === 'none') {
+                    nowPlayingContainer.style.display = 'flex';
+                }
+                document.getElementById('np-title').innerText = result.title;
+                document.getElementById('np-artist').innerText = result.artist;
+                if (result.img) {
+                    document.getElementById('np-cover').src = result.img;
+                }
+            } else {
+                nowPlayingContainer.style.display = 'none';
+            }
+        }).catch(err => { });
+    }
+}, 2000);
+
 // ====== INÍCIO DO SISTEMA ======
-carregarTarefas(); carregarMomentaneas(); carregarShoppingList(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
+carregarTarefas(); carregarMomentaneas(); carregarShoppingList(); carregarFinancas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
