@@ -600,6 +600,12 @@ function getInitialsAndColor(name) {
     return { initial, color: colors[idx] };
 }
 
+window.assinaturasExpandidas = false;
+function toggleAssinaturas() {
+    window.assinaturasExpandidas = !window.assinaturasExpandidas;
+    renderizarFinancas();
+}
+
 function renderizarFinancas() {
     // Atualizar Mês
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -679,6 +685,12 @@ function renderizarFinancas() {
     if (listaAss) listaAss.innerHTML = '';
     financas.assinaturas.forEach(a => {
         totalAss += parseFloat(a.valor || 0);
+    });
+
+    const maxMostrar = 3;
+    const itensMostrar = window.assinaturasExpandidas ? financas.assinaturas : financas.assinaturas.slice(0, maxMostrar);
+
+    itensMostrar.forEach(a => {
         const { initial, color } = getInitialsAndColor(a.nome);
         const div = document.createElement('div'); div.className = 'fin-item';
         div.innerHTML = `
@@ -699,10 +711,20 @@ function renderizarFinancas() {
         `;
         if (listaAss) listaAss.appendChild(div);
     });
+
     const elTotAss = document.getElementById('fin-total-assinaturas');
     if (elTotAss) elTotAss.innerHTML = `${formatCurrency(totalAss)} <span class="fin-subtext" style="margin-left:10px;">/mês • ${financas.assinaturas.length} ativas</span>`;
     const elCountAss = document.getElementById('fin-assinaturas-count');
     if (elCountAss) elCountAss.innerText = `${financas.assinaturas.length} assinaturas/dívidas`;
+
+    document.querySelectorAll('.btn-ver-todas-assinaturas').forEach(btn => {
+        if (financas.assinaturas.length <= maxMostrar) {
+            btn.style.display = 'none';
+        } else {
+            btn.style.display = 'inline-block';
+            btn.innerText = window.assinaturasExpandidas ? 'ver menos ↙' : 'ver todas ↗';
+        }
+    });
 
     // GANHOS
     let totalGanhos = 0;
