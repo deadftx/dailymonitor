@@ -1373,5 +1373,25 @@ if(document.getElementById('btn-pomo-reset')) {
     };
 }
 
+// ====== GAME CENTER ======
+const modalGameCenter = document.getElementById('modal-game-center');
+if (document.getElementById('btn-game-center')) {
+    document.getElementById('btn-game-center').onclick = () => {
+        modalGameCenter.style.display = 'flex';
+    };
+}
+if (document.getElementById('btn-fechar-game-center')) {
+    document.getElementById('btn-fechar-game-center').onclick = () => {
+        modalGameCenter.style.display = 'none';
+    };
+}
+if (document.getElementById('btn-launch-idle-hero')) {
+    document.getElementById('btn-launch-idle-hero').onclick = () => {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('launch-idle-hero');
+        modalGameCenter.style.display = 'none';
+    };
+}
+
 // ====== INÍCIO DO SISTEMA ======
 carregarTarefas(); carregarMomentaneas(); carregarGameAlerts(); carregarAgenda(); carregarShoppingList(); carregarFinancas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();

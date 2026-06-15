@@ -34,6 +34,7 @@
                     <button id="btn-agenda" class="btn-icon" style="background: rgba(46, 204, 113, 0.2); border-color: rgba(46, 204, 113, 0.4);">📅 Agenda</button>
                     <button id="btn-alertas-games" class="btn-icon" style="background: rgba(155, 89, 182, 0.2); border-color: rgba(155, 89, 182, 0.4);">🔔 Alertas Gamers</button>
                     <button id="btn-pomodoro" class="btn-icon" style="background: rgba(231, 76, 60, 0.6); border-color: rgba(231, 76, 60, 0.8); font-weight: bold;">🎯 FOCUS</button>
+                    <button id="btn-game-center" class="btn-icon" style="background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.4);">🕹️ Game Center</button>
                 </div>
             </div>
         </div>
@@ -280,6 +281,34 @@
                 <button id="btn-pomo-pause" class="btn-icon" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px; display: none;">⏸️ Pausar</button>
                 <button id="btn-pomo-reset" class="btn-danger" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px;">🔄 Resetar</button>
                 <button id="btn-fechar-pomodoro" class="btn-icon" style="font-size: 1.2rem; padding: 15px 30px; border-radius: 50px; background: rgba(255,255,255,0.2);">❌ Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GAME CENTER -->
+    <div id="modal-game-center" class="modal">
+        <div class="modal-content modal-large" style="width: 80%; max-width: 900px; height: 70%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #3498db; margin: 0; font-size: 2rem; display: flex; align-items: center; gap: 10px;">
+                    🕹️ Central de Jogos
+                </h2>
+                <button id="btn-fechar-game-center" class="btn-icon" style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 15px;">❌ Fechar</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding: 10px;">
+                
+                <!-- IDLE HERO -->
+                <div style="background: rgba(0,0,0,0.5); border: 2px solid #9b59b6; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s;">
+                    <div style="height: 120px; background: linear-gradient(135deg, #8e44ad, #3498db); display: flex; align-items: center; justify-content: center; font-size: 4rem;">
+                        ⚔️
+                    </div>
+                    <div style="padding: 15px; display: flex; flex-direction: column; flex: 1;">
+                        <h3 style="margin: 0 0 10px 0; color: #fff;">Idle Hero</h3>
+                        <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 15px; flex: 1;">Um RPG progressivo que roda sozinho. Crie sua equipe e evolua status enquanto trabalha.</p>
+                        <button class="btn-success" id="btn-launch-idle-hero" style="width: 100%; font-weight: bold;">▶ JOGAR AGORA</button>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>

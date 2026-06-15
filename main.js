@@ -129,6 +129,33 @@ app.whenReady().then(() => {
         }
     });
 
+    // NOVO: GAME CENTER - IDLE HERO
+    let idleHeroWindow = null;
+    ipcMain.on('launch-idle-hero', () => {
+        if (idleHeroWindow) {
+            idleHeroWindow.focus();
+            return;
+        }
+        
+        idleHeroWindow = new BrowserWindow({
+            width: 350,
+            height: 550,
+            frame: false,
+            transparent: true,
+            alwaysOnTop: true,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+            }
+        });
+
+        idleHeroWindow.loadFile(path.join(__dirname, 'games', 'idle-hero', 'index.html'));
+        
+        idleHeroWindow.on('closed', () => {
+            idleHeroWindow = null;
+        });
+    });
+
     ipcMain.on('set-autostart', (event, enable) => {
         app.setLoginItemSettings({
             openAtLogin: enable,

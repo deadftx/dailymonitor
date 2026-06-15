@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Idle Hero</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="drag-bar">⚔️ Idle Hero</div>
+    
+    <div class="container">
+        <!-- ÁREA DE COMBATE / LOG -->
+        <div class="combat-area">
+            <div id="combat-log">Aventureiros descansando na taverna...</div>
+            <div class="enemy-display" id="enemy-display" style="display: none;">
+                <img id="enemy-img" src="" alt="Enemy">
+                <div id="enemy-name" style="font-weight: bold; margin-top: 5px;">Slime</div>
+                <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp"></div></div>
+            </div>
+        </div>
+
+        <!-- RECURSOS DO TIME -->
+        <div class="team-resources">
+            <div>XP: <span id="team-xp">0</span> / <span id="team-xp-max">100</span> (Nvl <span id="team-level">1</span>)</div>
+            <div>💰: <span id="team-gold">0</span></div>
+            <div>Pontos: <span id="team-points">0</span></div>
+        </div>
+
+        <!-- LISTA DE PERSONAGENS -->
+        <div class="character-list" id="character-list">
+            <!-- Renderizado via JS -->
+        </div>
+        
+        <!-- LOJA / RECRUTAMENTO -->
+        <button id="btn-recruit" class="btn">Recrutar Novo Herói (Custa 100 💰)</button>
+    </div>
+
+    <!-- MODAL DE STATUS -->
+    <div id="modal-status" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="modal-char-name">Nome</h2>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Pontos Disponíveis:</span> <span id="modal-points" style="font-weight: bold; color: gold;">0</span>
+            </div>
+            
+            <div class="stat-row">
+                <span>FORÇA (Dano Fis):</span>
+                <div class="stat-controls">
+                    <span id="stat-str" class="stat-val">0</span>
+                    <button class="btn-stat" onclick="addStat('str')">+</button>
+                </div>
+            </div>
+            <div class="stat-row">
+                <span>AGILIDADE (Esquiva):</span>
+                <div class="stat-controls">
+                    <span id="stat-agi" class="stat-val">0</span>
+                    <button class="btn-stat" onclick="addStat('agi')">+</button>
+                </div>
+            </div>
+            <div class="stat-row">
+                <span>DESTREZA (Acerto/Crit):</span>
+                <div class="stat-controls">
+                    <span id="stat-dex" class="stat-val">0</span>
+                    <button class="btn-stat" onclick="addStat('dex')">+</button>
+                </div>
+            </div>
+            <div class="stat-row">
+                <span>VITALIDADE (HP/Def):</span>
+                <div class="stat-controls">
+                    <span id="stat-vit" class="stat-val">0</span>
+                    <button class="btn-stat" onclick="addStat('vit')">+</button>
+                </div>
+            </div>
+            <div class="stat-row">
+                <span>INTELIGÊNCIA (Dano Mag):</span>
+                <div class="stat-controls">
+                    <span id="stat-int" class="stat-val">0</span>
+                    <button class="btn-stat" onclick="addStat('int')">+</button>
+                </div>
+            </div>
+            
+            <button class="btn" style="margin-top: 15px; width: 100%;" onclick="closeModal()">Fechar</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
