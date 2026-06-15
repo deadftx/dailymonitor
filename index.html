@@ -13,7 +13,7 @@
 
     <div class="content-area">
         <div class="header-agenda">
-            <h1>Daily Monitor v1 by dead</h1>
+            <h1>Daily Monitor v1.1.0 by dead</h1>
             <div style="display: flex; gap: 10px;">
                 <button id="btn-arquivados" class="btn-icon">📁 Histórico</button>
                 <button id="btn-configuracoes" class="btn-icon">⚙️ Painel</button>
@@ -26,6 +26,14 @@
     </div>
 
     <div class="footer-area">
+        <div id="shopping-container" class="shopping-container">
+            <div class="shopping-header">
+                🛒 Lista de Compras
+                <button id="btn-add-shopping" class="btn-icon" style="padding: 2px 8px; font-size: 0.8rem; margin-left: 10px;">+ Novo</button>
+            </div>
+            <div id="lista-shopping" class="shopping-list"></div>
+        </div>
+
         <div id="clock-container">00:00</div>
 
         <div id="momentary-container" class="momentary-container">
@@ -154,6 +162,37 @@
             <div id="lista-arquivados" class="archived-list-container"></div>
             <div class="modal-actions">
                 <button id="btn-fechar-arquivados" class="btn-danger" style="width: 100%;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-shopping" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-shopping-titulo">Adicionar Item</h2>
+            
+            <label>Nome do Item:</label>
+            <input type="text" id="shop-nome" placeholder="Ex: Teclado Mecânico">
+            
+            <div class="linha-flex" style="gap: 15px;">
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label>Valor:</label>
+                    <input type="text" id="shop-valor" placeholder="R$ 0,00">
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label>Quantidade:</label>
+                    <input type="number" id="shop-qtd" value="1" min="1">
+                </div>
+            </div>
+
+            <label>Link de Compra:</label>
+            <input type="url" id="shop-link" placeholder="https://...">
+
+            <label>Data Limite:</label>
+            <input type="date" id="shop-data">
+
+            <div class="modal-actions">
+                <button id="btn-salvar-shopping" class="btn-success">Salvar</button>
+                <button id="btn-fechar-shopping" class="btn-danger">Cancelar</button>
             </div>
         </div>
     </div>

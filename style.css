@@ -299,6 +299,102 @@ button {
     cursor: pointer;
 }
 
+/* === SHOPPING LIST COMPACTA === */
+.shopping-container {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    width: 32vw;
+    height: 25vh;
+    background-color: rgba(22, 22, 22, 0.95);
+    border-radius: 8px;
+    border: 1px solid #333;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+}
+
+.shopping-header {
+    font-weight: bold;
+    font-size: 1rem;
+    color: var(--accent-color);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+}
+
+.shopping-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shopping-list::-webkit-scrollbar {
+    display: none;
+}
+
+.shopping-item {
+    background: #2a2a2a;
+    padding: 6px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.shopping-item.vencido {
+    animation: piscar 1s infinite;
+    background-color: rgba(255, 68, 68, 0.2);
+    border: 1px solid #ff4444;
+}
+
+.shopping-content-area {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.shopping-item-text {
+    font-size: 0.9rem;
+    color: #fff;
+    flex-grow: 1;
+}
+
+.shopping-item-details {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.shopping-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-edit-shop,
+.btn-del-shop {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px;
+}
+
+.btn-edit-shop {
+    color: var(--accent-color);
+}
+
+.btn-del-shop {
+    color: #ff4444;
+}
+
 /* Lista de Arquivados Compacta */
 .archived-list-container {
     display: flex;

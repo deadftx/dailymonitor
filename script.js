@@ -143,6 +143,7 @@ function tick() {
         const fh = h.toString().padStart(2, '0'); const fm = m.toString().padStart(2, '0');
         if (clockElement) clockElement.innerText = `${fh}:${fm}`;
         checkAlarms();
+        if (h === 0 && m === 0) renderizarShoppingList();
     }
 }
 
@@ -426,5 +427,135 @@ if (boardContainer) {
     boardContainer.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); boardContainer.scrollLeft = scrollLeft - (((e.pageX - boardContainer.offsetLeft) - startX) * 2); });
 }
 
+// ====== MOTOR DA LISTA DE COMPRAS ======
+let shoppingList = [];
+let shopIdEmEdicao = null;
+const modalShopping = document.getElementById('modal-shopping');
+
+function carregarShoppingList() {
+    const salvo = localStorage.getItem('tv_shopping');
+    shoppingList = salvo ? JSON.parse(salvo) : [];
+    renderizarShoppingList();
+}
+
+function salvarShoppingList() {
+    localStorage.setItem('tv_shopping', JSON.stringify(shoppingList));
+}
+
+function renderizarShoppingList() {
+    const lista = document.getElementById('lista-shopping');
+    if (!lista) return;
+    lista.innerHTML = '';
+    
+    shoppingList.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'shopping-item';
+        
+        let urlClick = item.link ? `onclick="if(!event.target.closest('button')) window.open('${item.link}', '_blank')"` : '';
+        let estiloCursor = item.link ? 'cursor: pointer;' : '';
+        
+        let classeVencido = '';
+        if (item.data) {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            
+            const partes = item.data.split('-');
+            if (partes.length === 3) {
+                const dataLimite = new Date(partes[0], partes[1] - 1, partes[2]);
+                dataLimite.setHours(0, 0, 0, 0);
+                if (hoje >= dataLimite) {
+                    classeVencido = 'vencido';
+                }
+            }
+        }
+        
+        if (classeVencido) div.classList.add(classeVencido);
+
+        div.innerHTML = `
+            <div class="shopping-content-area" ${urlClick} style="${estiloCursor}">
+                <div style="display: flex; flex-direction: column;">
+                    <span class="shopping-item-text">${item.nome}</span>
+                    <span class="shopping-item-details">
+                        ${item.valor ? 'R$ ' + item.valor : ''} ${item.qtd ? ' | Qtd: ' + item.qtd : ''}
+                        ${item.data ? ' | Data: ' + item.data.split('-').reverse().join('/') : ''}
+                    </span>
+                </div>
+            </div>
+            <div class="shopping-actions">
+                <button class="btn-edit-shop" data-id="${item.id}">✏️</button>
+                <button class="btn-del-shop" data-id="${item.id}">🗑️</button>
+            </div>
+        `;
+        lista.appendChild(div);
+    });
+
+    document.querySelectorAll('.btn-edit-shop').forEach(b => b.onclick = (e) => abrirEdicaoShopping(parseInt(e.currentTarget.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-del-shop').forEach(b => b.onclick = (e) => deletarShopping(parseInt(e.currentTarget.getAttribute('data-id'))));
+}
+
+function deletarShopping(id) {
+    shoppingList = shoppingList.filter(s => s.id !== id);
+    salvarShoppingList();
+    renderizarShoppingList();
+}
+
+function abrirEdicaoShopping(id) {
+    const s = shoppingList.find(x => x.id === id);
+    if (!s) return;
+    shopIdEmEdicao = id;
+    
+    document.getElementById('modal-shopping-titulo').innerText = "Editar Item";
+    document.getElementById('shop-nome').value = s.nome || "";
+    document.getElementById('shop-valor').value = s.valor || "";
+    document.getElementById('shop-qtd').value = s.qtd || "1";
+    document.getElementById('shop-link').value = s.link || "";
+    document.getElementById('shop-data').value = s.data || "";
+    
+    modalShopping.style.display = 'flex';
+}
+
+if (document.getElementById('btn-add-shopping')) {
+    document.getElementById('btn-add-shopping').onclick = () => {
+        shopIdEmEdicao = null;
+        document.getElementById('modal-shopping-titulo').innerText = "Adicionar Item";
+        document.getElementById('shop-nome').value = "";
+        document.getElementById('shop-valor').value = "";
+        document.getElementById('shop-qtd').value = "1";
+        document.getElementById('shop-link').value = "";
+        document.getElementById('shop-data').value = "";
+        
+        modalShopping.style.display = 'flex';
+    };
+}
+
+if (document.getElementById('btn-fechar-shopping')) {
+    document.getElementById('btn-fechar-shopping').onclick = () => modalShopping.style.display = 'none';
+}
+
+if (document.getElementById('btn-salvar-shopping')) {
+    document.getElementById('btn-salvar-shopping').onclick = () => {
+        const nome = document.getElementById('shop-nome').value.trim();
+        const valor = document.getElementById('shop-valor').value.trim();
+        const qtd = document.getElementById('shop-qtd').value.trim();
+        const link = document.getElementById('shop-link').value.trim();
+        const data = document.getElementById('shop-data').value;
+
+        if (!nome) return alert("Preencha o nome do item!");
+
+        if (shopIdEmEdicao) {
+            const idx = shoppingList.findIndex(s => s.id === shopIdEmEdicao);
+            if (idx !== -1) {
+                shoppingList[idx] = { ...shoppingList[idx], nome, valor, qtd, link, data };
+            }
+        } else {
+            shoppingList.push({ id: Date.now(), nome, valor, qtd, link, data });
+        }
+
+        salvarShoppingList();
+        renderizarShoppingList();
+        modalShopping.style.display = 'none';
+    };
+}
+
 // ====== INÍCIO DO SISTEMA ======
-carregarTarefas(); carregarMomentaneas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
+carregarTarefas(); carregarMomentaneas(); carregarShoppingList(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
