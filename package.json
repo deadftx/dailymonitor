@@ -20,8 +20,34 @@
     "url": "https://github.com/deadftx/dailymonitor/issues"
   },
   "homepage": "https://github.com/deadftx/dailymonitor#readme",
-  "devDependencies": {
+  "build": {
+    "appId": "com.deadftx.dailymonitor",
+    "productName": "Daily Monitor",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "img/loading.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "deadftx",
+        "repo": "dailymonitor"
+      }
+    ]
+  },
+  "dependencies": {
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

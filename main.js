@@ -1,13 +1,28 @@
 const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
 let mainWindow;
+let splashWindow;
 
 function createWindow() {
-    // A configuração limpa foi restaurada para o webview herdar o modo de compatibilidade
+    splashWindow = new BrowserWindow({
+        width: 500,
+        height: 350,
+        transparent: true,
+        frame: false,
+        alwaysOnTop: true,
+        webPreferences: {
+            nodeIntegration: true
+        }
+    });
+
+    splashWindow.loadFile('splash.html');
+
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
+        show: false, // Esconde no começo
         fullscreen: false,
         autoHideMenuBar: true,
         webPreferences: {
@@ -19,7 +34,53 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools(); // Comentado DevTools para ficar limpo para o usuário final
+
+    function sendStatusToWindow(type, message) {
+        if(splashWindow && !splashWindow.isDestroyed()) {
+            splashWindow.webContents.send('updater-message', type, message);
+        }
+    }
+
+    autoUpdater.on('checking-for-update', () => sendStatusToWindow('checking'));
+    autoUpdater.on('update-available', () => sendStatusToWindow('update-available'));
+    autoUpdater.on('update-not-available', () => {
+        sendStatusToWindow('update-not-available');
+        setTimeout(() => {
+            if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+            if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+        }, 1500);
+    });
+    autoUpdater.on('error', (err) => {
+        sendStatusToWindow('error', err == null ? "unknown" : (err.message || err).toString());
+        setTimeout(() => {
+            if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+            if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+        }, 3000);
+    });
+    autoUpdater.on('download-progress', (progressObj) => {
+        let percent = Math.round(progressObj.percent);
+        sendStatusToWindow('download-progress', percent);
+    });
+    autoUpdater.on('update-downloaded', () => {
+        sendStatusToWindow('update-downloaded');
+        setTimeout(() => {
+            autoUpdater.quitAndInstall();
+        }, 2000);
+    });
+
+    splashWindow.webContents.once('did-finish-load', () => {
+        if (!app.isPackaged) {
+            // Em modo desenvolvedor, ignora a busca real e apenas finge pra iniciar rápido
+            sendStatusToWindow('update-not-available');
+            setTimeout(() => {
+                if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+                if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+            }, 1000);
+        } else {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
+    });
 }
 
 app.whenReady().then(() => {

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Loading...</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: rgba(0,0,0,0);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            height: 100vh;
+            color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Efeito de janela arredondada e flutuante */
+        .splash-container {
+            background-color: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            text-align: center;
+            border: 2px solid #2ecc71;
+            position: relative;
+        }
+        /* Imagem que o usuário pediu */
+        img {
+            max-width: 150px;
+            max-height: 150px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite ease-in-out;
+            border-radius: 15px; /* Caso a imagem seja quadrada, dá um ar mais moderno */
+        }
+        /* Barra de carregamento */
+        .loader-bar {
+            width: 100%; height: 6px; background: #333; border-radius: 6px; overflow: hidden;
+            margin-top: 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .loader-fill {
+            height: 100%; 
+            background: linear-gradient(90deg, #2ecc71, #27ae60); 
+            width: 0%;
+            transition: width 0.2s ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(46, 204, 113, 0)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 15px rgba(46, 204, 113, 0.5)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(46, 204, 113, 0)); }
+        }
+        .text-check {
+            font-size: 1.2rem; font-weight: bold; color: #fff;
+            letter-spacing: 1px;
+        }
+        .text-sub {
+            font-size: 0.9rem; color: #aaa; margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <!-- O usuário solicitou a imagem na pasta img -->
+        <img src="img/loading.png" alt="Logo" onerror="this.style.display='none'; document.getElementById('fallback-title').style.display='block';">
+        <h1 id="fallback-title" style="display:none; color: #2ecc71; margin-bottom: 20px;">Daily Monitor</h1>
+        
+        <div class="text-check" id="status-title">Verificando versão...</div>
+        <div class="text-sub" id="status-desc">Carregando módulos de sistema</div>
+        <div class="loader-bar">
+            <div class="loader-fill" id="loader-fill"></div>
+        </div>
+    </div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+        const loaderFill = document.getElementById('loader-fill');
+        
+        ipcRenderer.on('updater-message', (event, type, message) => {
+            if(type === 'checking') {
+                statusTitle.innerText = "Buscando atualizações...";
+                statusDesc.innerText = "Conectando ao GitHub";
+                loaderFill.style.width = "20%";
+            } else if(type === 'update-available') {
+                statusTitle.innerText = "Nova versão encontrada!";
+                statusDesc.innerText = "Preparando o download...";
+                loaderFill.style.width = "40%";
+            } else if(type === 'update-not-available') {
+                statusTitle.innerText = "Você está na última versão!";
+                statusDesc.innerText = "Iniciando o sistema...";
+                loaderFill.style.width = "100%";
+            } else if(type === 'download-progress') {
+                statusTitle.innerText = "Baixando atualização...";
+                statusDesc.innerText = message + "% concluído";
+                loaderFill.style.width = message + "%";
+            } else if(type === 'update-downloaded') {
+                statusTitle.innerText = "Atualização pronta!";
+                statusDesc.innerText = "Reiniciando para aplicar...";
+                loaderFill.style.width = "100%";
+            } else if(type === 'error') {
+                statusTitle.innerText = "Erro ao buscar atualização";
+                statusDesc.innerText = message;
+                loaderFill.style.width = "100%";
+                loaderFill.style.background = "#e74c3c";
+            }
+        });
+    </script>
+</body>
+</html>
