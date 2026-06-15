@@ -97,7 +97,7 @@ button {
     display: flex;
     gap: 10px;
     width: 100%;
-    height: 58vh;
+    flex: 1;
     overflow-x: auto;
     padding-bottom: 10px;
     cursor: grab;
@@ -192,35 +192,50 @@ button {
     font-size: 0.8rem;
 }
 
-/* === O NOVO RODAPÉ CENTRALIZADO E ABSOLUTO === */
+/* === O NOVO RODAPÉ CENTRALIZADO === */
+.footer-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+    position: relative;
+    padding-top: 15px;
+    min-height: 25vh;
+}
+
 #clock-container {
     position: absolute;
-    bottom: 1vh;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 11rem;
-    /* Relógio gigante e imponente */
+    font-size: clamp(6rem, 10vw, 11rem);
+    /* Relógio gigante e responsivo */
     font-weight: bold;
     color: var(--accent-color);
     text-shadow: 0px 4px 25px rgba(0, 0, 0, 0.95);
     z-index: 5;
     pointer-events: none;
-    /* Não atrapalha cliques por trás dele */
+}
+
+.left-footer, .right-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 30vw;
+    min-width: 300px;
+    max-height: 35vh;
+    z-index: 10;
 }
 
 .momentary-container {
-    position: absolute;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 32vw;
-    height: 25vh;
     background-color: rgba(22, 22, 22, 0.95);
     border-radius: 8px;
     border: 1px solid #333;
     padding: 12px;
     display: flex;
     flex-direction: column;
-    z-index: 10;
+    flex: 1;
+    min-height: 0;
 }
 
 .momentary-header {
@@ -301,18 +316,14 @@ button {
 
 /* === SHOPPING LIST COMPACTA === */
 .shopping-container {
-    position: absolute;
-    bottom: 1.5rem;
-    left: 1.5rem;
-    width: 32vw;
-    height: 25vh;
     background-color: rgba(22, 22, 22, 0.95);
     border-radius: 8px;
     border: 1px solid #333;
     padding: 12px;
     display: flex;
     flex-direction: column;
-    z-index: 10;
+    flex: 1;
+    min-height: 0;
 }
 
 .shopping-header {

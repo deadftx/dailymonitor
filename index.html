@@ -44,38 +44,47 @@
     </div>
 
     <div class="footer-area">
-        <div id="shopping-container" class="shopping-container">
-            <div class="shopping-header">
-                🛒 Lista de Compras
-                <button id="btn-add-shopping" class="btn-icon"
-                    style="padding: 2px 8px; font-size: 0.8rem; margin-left: 10px;">+ Novo</button>
+        <div class="left-footer">
+            <div id="shopping-container" class="shopping-container">
+                <div class="shopping-header">
+                    🛒 Lista de Compras
+                    <button id="btn-add-shopping" class="btn-icon"
+                        style="padding: 2px 8px; font-size: 0.8rem; margin-left: 10px;">+ Novo</button>
+                </div>
+                <div id="lista-shopping" class="shopping-list"></div>
             </div>
-            <div id="lista-shopping" class="shopping-list"></div>
+            <div id="now-playing-container" class="now-playing-container" style="display: none;">
+                <img id="np-cover" src="" alt="Capa" class="np-cover">
+                <div class="np-info">
+                    <span id="np-title" class="np-title">Título da Música</span>
+                    <span id="np-artist" class="np-artist">Artista</span>
+                </div>
+                <div class="np-controls" style="display: flex; gap: 8px; margin-right: 15px; align-items: center;">
+                    <button id="btn-yt-prev" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏮️</button>
+                    <button id="btn-yt-playpause" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏸️</button>
+                    <button id="btn-yt-next" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏭️</button>
+                    <input type="range" id="yt-volume" min="0" max="100" value="100" style="width: 60px; margin-left: 10px; cursor: pointer;" title="Volume do YouTube">
+                </div>
+                <div class="playing-animation">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="now-playing-container" class="now-playing-container" style="display: none;">
-            <img id="np-cover" src="" alt="Capa" class="np-cover">
-            <div class="np-info">
-                <span id="np-title" class="np-title">Título da Música</span>
-                <span id="np-artist" class="np-artist">Artista</span>
-            </div>
-            <div class="np-controls" style="display: flex; gap: 8px; margin-right: 15px;">
-                <button id="btn-yt-prev" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏮️</button>
-                <button id="btn-yt-playpause" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏸️</button>
-                <button id="btn-yt-next" class="btn-icon" style="font-size: 1.2rem; background: none; border: none; cursor: pointer; opacity: 0.8; transition: 0.2s;">⏭️</button>
-            </div>
-            <div class="playing-animation">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-            </div>
-        </div>
         <div id="clock-container">00:00</div>
 
-        <div id="momentary-container" class="momentary-container">
-            <div class="momentary-header">📌 Notas Rápidas / Momentâneas</div>
-            <input type="text" id="input-momentaria" placeholder="Escreva e Enter para adicionar...">
-            <div id="lista-momentaneas" class="momentary-list"></div>
+        <div class="right-footer">
+            <div id="agenda-preview-container" class="momentary-container">
+                <div class="momentary-header" style="color: #2ecc71;">📅 Próximos Eventos</div>
+                <div id="lista-agenda-preview" class="momentary-list"></div>
+            </div>
+            <div id="momentary-container" class="momentary-container">
+                <div class="momentary-header">📌 Notas Rápidas / Momentâneas</div>
+                <input type="text" id="input-momentaria" placeholder="Escreva e Enter para adicionar...">
+                <div id="lista-momentaneas" class="momentary-list"></div>
+            </div>
         </div>
     </div>
 

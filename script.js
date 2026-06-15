@@ -995,6 +995,15 @@ if (document.getElementById('btn-yt-prev')) {
             }
         `);
     };
+    if (document.getElementById('yt-volume')) {
+        document.getElementById('yt-volume').oninput = (e) => {
+            let vol = e.target.value / 100;
+            if (ytWebview) ytWebview.executeJavaScript(`
+                var v = document.querySelector('video');
+                if(v) v.volume = ${vol};
+            `);
+        };
+    }
 }
 
 // ====== MONITOR DE CLIMA ======
@@ -1152,10 +1161,66 @@ if (document.getElementById('btn-agenda-next')) {
 function carregarAgenda() {
     const salvo = localStorage.getItem('tv_agenda');
     agendaEvents = salvo ? JSON.parse(salvo) : {};
+    renderizarProximosEventosAgenda();
 }
 
 function salvarAgenda() {
     localStorage.setItem('tv_agenda', JSON.stringify(agendaEvents));
+    renderizarProximosEventosAgenda();
+}
+
+function renderizarProximosEventosAgenda() {
+    const listaPreview = document.getElementById('lista-agenda-preview');
+    if(!listaPreview) return;
+    listaPreview.innerHTML = '';
+    
+    let todosEventos = [];
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    
+    for (const dataStr in agendaEvents) {
+        const [ano, mes, dia] = dataStr.split('-');
+        const dataObj = new Date(ano, mes - 1, dia);
+        if (dataObj >= hoje) {
+            agendaEvents[dataStr].forEach(ev => {
+                todosEventos.push({
+                    dateObj: dataObj,
+                    dateStr: `${dia}/${mes}`,
+                    title: ev.title,
+                    time: ev.time || ''
+                });
+            });
+        }
+    }
+    
+    todosEventos.sort((a, b) => {
+        if(a.dateObj.getTime() !== b.dateObj.getTime()) {
+            return a.dateObj.getTime() - b.dateObj.getTime();
+        }
+        return a.time.localeCompare(b.time);
+    });
+    
+    const proximos = todosEventos.slice(0, 5);
+    
+    if (proximos.length === 0) {
+        listaPreview.innerHTML = '<div style="color: #aaa; font-size: 0.8rem; padding: 5px;">Nenhum evento futuro.</div>';
+        return;
+    }
+    
+    proximos.forEach(ev => {
+        const div = document.createElement('div');
+        div.className = 'momentary-item';
+        div.style.padding = '6px 8px';
+        div.style.flexShrink = '0'; // Garante que não sejam esmagados
+        div.innerHTML = `
+            <div class="momentary-item-text" style="color: #fff; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                <span style="color: #2ecc71;">[${ev.dateStr}]</span> 
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${ev.title}</span>
+            </div>
+            ${ev.time ? `<div class="momentary-item-time" style="font-size: 0.75rem; opacity: 0.8; white-space: nowrap;">${ev.time}</div>` : ''}
+        `;
+        listaPreview.appendChild(div);
+    });
 }
 
 function renderizarCalendario() {
