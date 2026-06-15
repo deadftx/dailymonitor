@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TV Dashboard</title>
+    <title>TV Dashboard Pro Max</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -13,10 +13,11 @@
 
     <div class="content-area">
         <div class="header-agenda">
-            <h1>Minha Agenda</h1>
+            <h1>Daily Monitor v1 by dead</h1>
             <div style="display: flex; gap: 10px;">
-                <button id="btn-configuracoes" class="btn-icon">⚙️ Configurações</button>
-                <button id="btn-nova-tarefa">+ Nova Tarefa</button>
+                <button id="btn-arquivados" class="btn-icon">📁 Histórico</button>
+                <button id="btn-configuracoes" class="btn-icon">⚙️ Painel</button>
+                <button id="btn-nova-tarefa">+ Novo Alarme</button>
             </div>
         </div>
 
@@ -24,7 +25,15 @@
         </div>
     </div>
 
-    <div id="clock-container">00:00</div>
+    <div class="footer-area">
+        <div id="clock-container">00:00</div>
+
+        <div id="momentary-container" class="momentary-container">
+            <div class="momentary-header">📌 Notas Rápidas / Momentâneas</div>
+            <input type="text" id="input-momentaria" placeholder="Escreva e Enter para adicionar...">
+            <div id="lista-momentaneas" class="momentary-list"></div>
+        </div>
+    </div>
 
     <div id="modal-tarefa" class="modal">
         <div class="modal-content">
@@ -34,7 +43,7 @@
             <label>Horário:</label>
             <input type="time" id="input-hora">
             <label>Categoria:</label>
-            <input type="text" id="input-categoria" placeholder="Ex: Rotina, Saúde, Lazer...">
+            <input type="text" id="input-categoria" placeholder="Ex: Rotina, Saúde...">
             <div class="modal-actions">
                 <button id="btn-salvar-tarefa" class="btn-success">Salvar</button>
                 <button id="btn-fechar-modal" class="btn-danger">Cancelar</button>
@@ -44,15 +53,18 @@
 
     <div id="modal-editar" class="modal">
         <div class="modal-content modal-large">
-            <h2>Configurar Alarme</h2>
+            <h2 id="modal-editar-titulo">Configurar Alarme</h2>
+
             <div class="linha-flex">
                 <label class="toggle-container">
                     <input type="checkbox" id="edit-ativo">
-                    <span class="toggle-text">Alarme Ligado</span>
+                    <span class="toggle-text">Ativo</span>
                 </label>
             </div>
+
             <label>Título:</label>
             <input type="text" id="edit-titulo">
+
             <div class="linha-flex" style="gap: 15px;">
                 <div style="flex: 1; display: flex; flex-direction: column;">
                     <label>Horário:</label>
@@ -63,6 +75,7 @@
                     <input type="text" id="edit-categoria">
                 </div>
             </div>
+
             <label>Avisar antes do evento:</label>
             <select id="edit-pre-aviso" class="custom-select">
                 <option value="0">Na hora exata</option>
@@ -71,18 +84,23 @@
                 <option value="45">45 minutos antes</option>
                 <option value="60">1 hora antes</option>
             </select>
-            <label>Repetir nos dias:</label>
-            <div class="dias-semana" id="edit-dias">
-                <label><input type="checkbox" value="0"> Dom</label>
-                <label><input type="checkbox" value="1"> Seg</label>
-                <label><input type="checkbox" value="2"> Ter</label>
-                <label><input type="checkbox" value="3"> Qua</label>
-                <label><input type="checkbox" value="4"> Qui</label>
-                <label><input type="checkbox" value="5"> Sex</label>
-                <label><input type="checkbox" value="6"> Sáb</label>
+
+            <div id="secao-edit-dias">
+                <label>Repetir nos dias (Apenas Recorrentes):</label>
+                <div class="dias-semana" id="edit-dias">
+                    <label><input type="checkbox" value="0"> Dom</label>
+                    <label><input type="checkbox" value="1"> Seg</label>
+                    <label><input type="checkbox" value="2"> Ter</label>
+                    <label><input type="checkbox" value="3"> Qua</label>
+                    <label><input type="checkbox" value="4"> Qui</label>
+                    <label><input type="checkbox" value="5"> Sex</label>
+                    <label><input type="checkbox" value="6"> Sáb</label>
+                </div>
             </div>
+
             <label>Anotações:</label>
             <textarea id="edit-notas" rows="3" placeholder="Insira detalhes..."></textarea>
+
             <div class="modal-actions">
                 <button id="btn-salvar-edicao" class="btn-success">Atualizar</button>
                 <button id="btn-fechar-edicao" class="btn-danger">Cancelar</button>
@@ -103,36 +121,39 @@
 
     <div id="modal-config" class="modal">
         <div class="modal-content modal-large">
-            <h2>Configurações do Sistema</h2>
-
+            <h2>Configurações do Painel</h2>
             <div class="linha-flex">
                 <label class="toggle-container">
                     <input type="checkbox" id="config-autostart">
-                    <span class="toggle-text">Iniciar Automaticamente com o Windows</span>
+                    <span class="toggle-text">Iniciar com Windows</span>
                 </label>
             </div>
-
-            <label>Monitor Padrão (Onde a tela cheia vai abrir):</label>
+            <label>Monitor Padrão:</label>
             <select id="config-monitor" class="custom-select"></select>
-
-            <label>Dispositivo de Saída de Áudio (Alarme):</label>
+            <label>Saída de Áudio:</label>
             <select id="config-audio" class="custom-select"></select>
-
-            <label>Papel de Parede (Imagem ou Vídeo MP4):</label>
+            <label>Wallpaper:</label>
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                <button id="btn-escolher-wp" class="btn-success" style="flex: 1; font-size: 1rem;">📁 Procurar
-                    Arquivo</button>
-                <button id="btn-limpar-wp" class="btn-danger" style="font-size: 1rem;">🗑️ Remover Fundo</button>
+                <button id="btn-escolher-wp" class="btn-success" style="flex: 1; font-size: 1rem;">📁 Escolher</button>
+                <button id="btn-limpar-wp" class="btn-danger" style="font-size: 1rem;">🗑️ Limpar</button>
             </div>
             <p id="nome-arquivo-escolhido"
-                style="margin: 0 0 15px 0; font-size: 0.9rem; color: #aaa; word-break: break-all;">Nenhum arquivo
-                selecionado</p>
-            <label style="margin-top: 15px;">Opacidade do Papel de Parede:</label>
+                style="margin: 0 0 15px 0; font-size: 0.8rem; color: #aaa; word-break: break-all;">Padrão</p>
+            <label style="margin-top: 10px;">Opacidade do Fundo:</label>
             <input type="range" id="config-opacidade" min="0" max="1" step="0.1" value="0.5">
-
             <div class="modal-actions">
-                <button id="btn-salvar-config" class="btn-success">Salvar Configurações</button>
+                <button id="btn-salvar-config" class="btn-success">Salvar</button>
                 <button id="btn-fechar-config" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-arquivados" class="modal">
+        <div class="modal-content modal-large">
+            <h2>📁 Histórico de Notas Arquivadas</h2>
+            <div id="lista-arquivados" class="archived-list-container"></div>
+            <div class="modal-actions">
+                <button id="btn-fechar-arquivados" class="btn-danger" style="width: 100%;">Fechar</button>
             </div>
         </div>
     </div>
