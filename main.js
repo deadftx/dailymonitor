@@ -65,7 +65,8 @@ function createWindow() {
     autoUpdater.on('update-downloaded', () => {
         sendStatusToWindow('update-downloaded');
         setTimeout(() => {
-            autoUpdater.quitAndInstall();
+            // isSilent = true, isForceRunAfter = true
+            autoUpdater.quitAndInstall(true, true);
         }, 2000);
     });
 
