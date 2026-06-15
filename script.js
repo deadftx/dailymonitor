@@ -1482,3 +1482,9 @@ if (document.getElementById('btn-launch-idle-hero')) {
 
 // ====== INÍCIO DO SISTEMA ======
 carregarTarefas(); carregarMomentaneas(); carregarGameAlerts(); carregarAgenda(); carregarShoppingList(); carregarFinancas(); carregarConfiguracoes(); syncApiTime(); setInterval(syncApiTime, 3600000); setInterval(tick, 1000); tick();
+
+// Verifica Auto-Start do Idle Hero
+if (localStorage.getItem('idle_hero_autostart') === 'true') {
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.send('launch-idle-hero');
+}

@@ -3,83 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <title>Idle Hero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="drag-bar">⚔️ Idle Hero</div>
+    <div id="drag-bar">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span>⚔️</span> <span style="font-family:'Cinzel', serif; font-weight:bold; letter-spacing:1px;">Idle Hero</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button id="btn-settings" class="drag-btn">⚙️</button>
+            <button id="btn-close" class="drag-btn drag-btn-danger">❌</button>
+        </div>
+    </div>
     
     <div class="container">
-        <!-- ÁREA DE COMBATE / LOG -->
+        <!-- ÁREA DE COMBATE COM IMAGEM -->
         <div class="combat-area">
-            <div id="combat-log">Aventureiros descansando na taverna...</div>
+            <div id="combat-log">Aventureiros descansando...</div>
             <div class="enemy-display" id="enemy-display" style="display: none;">
                 <img id="enemy-img" src="" alt="Enemy">
-                <div id="enemy-name" style="font-weight: bold; margin-top: 5px;">Slime</div>
+                <div id="enemy-name">Slime</div>
                 <div class="hp-bar-bg"><div class="hp-bar-fill" id="enemy-hp"></div></div>
             </div>
         </div>
 
-        <!-- RECURSOS DO TIME -->
-        <div class="team-resources">
-            <div>XP: <span id="team-xp">0</span> / <span id="team-xp-max">100</span> (Nvl <span id="team-level">1</span>)</div>
-            <div>💰: <span id="team-gold">0</span></div>
-            <div>Pontos: <span id="team-points">0</span></div>
+        <!-- PAINEL DE INFORMAÇÕES (EQUIPE) -->
+        <div class="info-panel">
+            <div class="info-row">
+                <span class="info-label">GOLD: <span id="team-gold" class="info-value">0</span></span>
+                <span class="info-label">PONTOS: <span id="team-points" class="info-value" style="color:#3498db;">0</span></span>
+            </div>
+            <div class="info-row" style="margin-top:8px;">
+                <span class="info-label" style="font-size:0.75rem;">TEAM LEVEL <span id="team-level">1</span></span>
+            </div>
+            <div class="xp-container">
+                <div class="xp-fill" id="team-xp-fill"></div>
+                <div class="xp-text"><span id="team-xp">0</span> / <span id="team-xp-max">100</span> XP</div>
+            </div>
         </div>
 
-        <!-- LISTA DE PERSONAGENS -->
-        <div class="character-list" id="character-list">
-            <!-- Renderizado via JS -->
+        <!-- CONTEÚDO SCROLLÁVEL -->
+        <div class="content-area">
+            <div class="grid-buttons">
+                <button id="btn-recruit" class="btn-mmo btn-mmo-gold">🍺 Taverna</button>
+                <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'">⚙️ Opções</button>
+            </div>
+            
+            <div style="font-size: 0.75rem; color:#888; font-weight:bold; margin-top:5px;">TEAM MEMBERS</div>
+            <div class="character-list" id="character-list">
+                <!-- Renderizado via JS -->
+            </div>
         </div>
-        
-        <!-- LOJA / RECRUTAMENTO -->
-        <button id="btn-recruit" class="btn">Recrutar Novo Herói (Custa 100 💰)</button>
     </div>
 
-    <!-- MODAL DE STATUS -->
+    <!-- MODAL DE STATUS DO HERÓI -->
     <div id="modal-status" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 id="modal-char-name">Nome</h2>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span>Pontos Disponíveis:</span> <span id="modal-points" style="font-weight: bold; color: gold;">0</span>
+        <div class="modal-content mmo-modal">
+            <h2 id="modal-char-name" style="font-family:'Cinzel', serif; color:gold; text-align:center;">Nome</h2>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 10px;">
+                <span>Pontos Disponíveis:</span> <span id="modal-points" style="font-weight: bold; color: gold; font-size:1.2rem;">0</span>
             </div>
             
             <div class="stat-row">
-                <span>FORÇA (Dano Fis):</span>
+                <span>⚔️ FORÇA <small>(Dano Fis)</small></span>
                 <div class="stat-controls">
                     <span id="stat-str" class="stat-val">0</span>
                     <button class="btn-stat" onclick="addStat('str')">+</button>
                 </div>
             </div>
             <div class="stat-row">
-                <span>AGILIDADE (Esquiva):</span>
+                <span>🍃 AGILIDADE <small>(Esquiva)</small></span>
                 <div class="stat-controls">
                     <span id="stat-agi" class="stat-val">0</span>
                     <button class="btn-stat" onclick="addStat('agi')">+</button>
                 </div>
             </div>
             <div class="stat-row">
-                <span>DESTREZA (Acerto/Crit):</span>
+                <span>🎯 DESTREZA <small>(Acerto/Crit)</small></span>
                 <div class="stat-controls">
                     <span id="stat-dex" class="stat-val">0</span>
                     <button class="btn-stat" onclick="addStat('dex')">+</button>
                 </div>
             </div>
             <div class="stat-row">
-                <span>VITALIDADE (HP/Def):</span>
+                <span>❤️ VITALIDADE <small>(HP/Def)</small></span>
                 <div class="stat-controls">
                     <span id="stat-vit" class="stat-val">0</span>
                     <button class="btn-stat" onclick="addStat('vit')">+</button>
                 </div>
             </div>
             <div class="stat-row">
-                <span>INTELIGÊNCIA (Dano Mag):</span>
+                <span>🔮 INTELIGÊNCIA <small>(Dano Mag)</small></span>
                 <div class="stat-controls">
                     <span id="stat-int" class="stat-val">0</span>
                     <button class="btn-stat" onclick="addStat('int')">+</button>
                 </div>
             </div>
             
-            <button class="btn" style="margin-top: 15px; width: 100%;" onclick="closeModal()">Fechar</button>
+            <button class="btn btn-mmo-close" style="margin-top: 20px; width: 100%;" onclick="closeModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DA TAVERNA (RECRUTAR) -->
+    <div id="modal-tavern" class="modal" style="display: none;">
+        <div class="modal-content mmo-modal" style="width: 90%; max-width: 400px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:gold; text-align:center; margin-top:0;">🍺 Taverna</h2>
+            <p style="text-align:center; color:#ccc; font-size:0.9rem; margin-bottom:15px;">Escolha um novo herói para se juntar à sua equipe. (Custo: 100 💰)</p>
+            <div id="tavern-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <!-- Classes renderizadas aqui -->
+            </div>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="closeTavern()">Sair da Taverna</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÕES -->
+    <div id="modal-settings" class="modal" style="display: none;">
+        <div class="modal-content mmo-modal">
+            <h2 style="font-family:'Cinzel', serif; color:white; text-align:center;">⚙️ Configurações</h2>
+            
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="chk-autostart" style="width:18px; height:18px;">
+                    <span style="font-size:1rem; color:#fff;">Auto-Iniciar com Daily Monitor</span>
+                </label>
+                <p style="font-size:0.8rem; color:#888; margin: -10px 0 0 28px;">O jogo abrirá automaticamente sempre que iniciar o programa.</p>
+
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="chk-background" style="width:18px; height:18px;">
+                    <span style="font-size:1rem; color:#fff;">Rodar em Background (Bandeja)</span>
+                </label>
+                <p style="font-size:0.8rem; color:#888; margin: -10px 0 0 28px;">Ao fechar no (❌), o jogo ficará invisível mas continuará batalhando.</p>
+                
+                <hr style="border-color: #333; margin: 10px 0;">
+                <button class="btn btn-mmo-close" style="width: 100%;" onclick="document.getElementById('modal-reset').style.display='flex'">⚠️ Resetar Progresso do Jogo</button>
+            </div>
+
+            <button class="btn btn-mmo" style="margin-top: 25px; width: 100%;" onclick="saveSettings()">Salvar Configurações</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE RESET CUSTOMIZADO -->
+    <div id="modal-reset" class="modal" style="display: none; z-index: 200;">
+        <div class="modal-content mmo-modal" style="text-align: center;">
+            <h2 style="font-family:'Cinzel', serif; color:#e74c3c; margin-top:0;">Apagar Save?</h2>
+            <p style="color:#ccc; font-size:0.9rem;">Para resetar todo o progresso e voltar ao level 1 com 300💰, digite <b>CERTEZA</b> abaixo:</p>
+            <input type="text" id="input-reset" placeholder="Digite CERTEZA..." style="width:100%; padding:10px; margin-bottom:15px; background:#222; border:1px solid #e74c3c; color:white; text-align:center; font-weight:bold;">
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-mmo" style="flex:1;" onclick="document.getElementById('modal-reset').style.display='none'">Cancelar</button>
+                <button class="btn btn-mmo-close" style="flex:1;" onclick="confirmarReset()">Apagar</button>
+            </div>
         </div>
     </div>
 

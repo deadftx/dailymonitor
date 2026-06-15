@@ -1,3 +1,5 @@
+const { ipcRenderer } = require('electron');
+
 const CLASSES = [
     { name: 'Arqueiro',   stats: { str: 4, agi: 3, dex: 5, vit: 2, int: 1 }, seed: 'Archer' },
     { name: 'Guerreiro',  stats: { str: 5, agi: 2, dex: 3, vit: 4, int: 1 }, seed: 'Warrior' },
@@ -12,12 +14,12 @@ const CLASSES = [
 ];
 
 let gameState = {
-    gold: 100,
+    gold: 300,
     team: [],
     level: 1,
     xp: 0,
     xpMax: 100,
-    points: 0 // pontos globais da equipe ou pontos individuais? O usuário pediu: "cada personagem ganha 5 pontos" - vou fazer pontos por personagem.
+    points: 0
 };
 
 let currentEnemy = null;
@@ -42,17 +44,53 @@ function getMaxHp(hero) {
 }
 
 document.getElementById('btn-recruit').onclick = () => {
+    abrirTaverna();
+};
+
+function abrirTaverna() {
+    if (gameState.team.length >= 5) {
+        alert("Sua equipe já está cheia! (Máx: 5)");
+        return;
+    }
+    const list = document.getElementById('tavern-list');
+    list.innerHTML = '';
+    
+    CLASSES.forEach((cls, index) => {
+        const div = document.createElement('div');
+        div.className = 'tavern-item';
+        div.onclick = () => comprarHeroi(index);
+        div.innerHTML = `
+            <div style="display:flex; gap:10px; align-items:center;">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=${cls.seed}&scale=100" style="width:40px; height:40px; border-radius:4px; background:radial-gradient(circle, #333, #111); border:1px solid #b8860b;">
+                <div>
+                    <div class="tavern-item-name">${cls.name}</div>
+                    <div class="tavern-item-stats">STR:${cls.stats.str} AGI:${cls.stats.agi} DEX:${cls.stats.dex} VIT:${cls.stats.vit} INT:${cls.stats.int}</div>
+                </div>
+            </div>
+            <div style="color:gold; font-size:0.9rem; font-weight:bold;">100 💰</div>
+        `;
+        list.appendChild(div);
+    });
+    
+    document.getElementById('modal-tavern').style.display = 'flex';
+}
+
+window.closeTavern = function() {
+    document.getElementById('modal-tavern').style.display = 'none';
+};
+
+function comprarHeroi(classIndex) {
     if (gameState.gold >= 100 && gameState.team.length < 5) {
         gameState.gold -= 100;
-        const randomClass = CLASSES[Math.floor(Math.random() * CLASSES.length)];
+        const cls = CLASSES[classIndex];
         
         const newHero = {
             id: Date.now(),
-            name: randomClass.name,
-            classData: randomClass,
+            name: cls.name,
+            classData: cls,
             level: 1,
             unspentPoints: 0,
-            stats: { ...randomClass.stats },
+            stats: { ...cls.stats },
             hp: 0
         };
         newHero.hp = getMaxHp(newHero);
@@ -60,18 +98,28 @@ document.getElementById('btn-recruit').onclick = () => {
         
         salvarJogo();
         updateUI();
+        closeTavern();
     } else if (gameState.team.length >= 5) {
         alert("Equipe cheia! Máximo 5 heróis.");
     } else {
-        alert("Ouro insuficiente! Necessário 100 💰");
+        alert("Ouro insuficiente! Vá batalhar por mais 💰.");
     }
-};
+}
 
 function updateUI() {
     document.getElementById('team-gold').innerText = gameState.gold;
     document.getElementById('team-xp').innerText = gameState.xp;
     document.getElementById('team-xp-max').innerText = gameState.xpMax;
     document.getElementById('team-level').innerText = gameState.level;
+    
+    // Nova barra de XP geral
+    let xpPct = Math.min(100, (gameState.xp / gameState.xpMax) * 100);
+    document.getElementById('team-xp-fill').style.width = `${xpPct}%`;
+    
+    // Total de pontos disponíveis da equipe (Soma)
+    let totalPoints = 0;
+    gameState.team.forEach(h => totalPoints += h.unspentPoints);
+    document.getElementById('team-points').innerText = totalPoints;
     
     const list = document.getElementById('character-list');
     list.innerHTML = '';
@@ -82,13 +130,14 @@ function updateUI() {
         
         const div = document.createElement('div');
         div.className = 'char-card';
-        // DiceBear Pixel Art para avatar do heroi baseado na semente (seed)
         div.innerHTML = `
-            <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=${hero.classData.seed}&scale=120" class="char-img">
+            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=${hero.classData.seed}&scale=100" class="char-img">
             <div class="char-info">
-                <div style="display:flex; justify-content:space-between;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="char-name">${hero.name} (Nv ${hero.level})</span>
-                    <button class="btn" style="padding: 2px 5px; font-size: 0.7rem;" onclick="abrirStatus(${index})">Status ${hero.unspentPoints > 0 ? '(!)' : ''}</button>
+                    <button class="btn-stat" style="width:20px; height:20px; border-radius:4px; font-size:0.7rem;" onclick="abrirStatus(${index})">
+                        ${hero.unspentPoints > 0 ? '✨' : 'ℹ️'}
+                    </button>
                 </div>
                 <span class="char-class">STR:${hero.stats.str} AGI:${hero.stats.agi} DEX:${hero.stats.dex} VIT:${hero.stats.vit} INT:${hero.stats.int}</span>
                 <div class="char-hp-bg"><div class="char-hp-fill" style="width: ${hpPct}%"></div></div>
@@ -99,14 +148,14 @@ function updateUI() {
 }
 
 function gerarInimigo() {
-    const tipos = ['Slime', 'Goblin', 'Esqueleto', 'Orc', 'Dragão Menor'];
+    const tipos = ['Demonio', 'Dragon', 'Vampire', 'Lich', 'Behemoth', 'Titan'];
     const nome = tipos[Math.floor(Math.random() * tipos.length)];
     const hp = 50 * gameState.level;
     currentEnemy = {
         name: `Lvl ${gameState.level} ${nome}`,
         hp: hp,
         maxHp: hp,
-        img: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${nome}&backgroundColor=transparent`
+        img: `https://api.dicebear.com/7.x/bottts/svg?seed=${nome}&baseColor=e74c3c,c0392b`
     };
     
     document.getElementById('enemy-display').style.display = 'block';
@@ -182,9 +231,17 @@ function iniciarCombate() {
             
             gerarInimigo();
         } else {
-            // Inimigo ataca
-            const target = gameState.team[Math.floor(Math.random() * gameState.team.length)];
-            if(target.hp > 0) {
+            // Inimigo ataca (Alvo é o herói VIVO com MAIOR Armadura/VIT)
+            let target = null;
+            let maxVit = -1;
+            gameState.team.forEach(h => {
+                if (h.hp > 0 && h.stats.vit > maxVit) {
+                    maxVit = h.stats.vit;
+                    target = h;
+                }
+            });
+            
+            if(target) {
                 const enemyDmg = 5 * gameState.level;
                 // Defesa (VIT * 1)
                 const def = target.stats.vit * 1;
@@ -236,6 +293,40 @@ window.addStat = function(statName) {
         salvarJogo();
         updateUI();
         abrirStatus(selectedHeroIndex);
+    }
+};
+
+// ====== ARRASTAR E FECHAR JANELA ======
+document.getElementById('btn-close').onclick = () => {
+    const isBg = localStorage.getItem('idle_hero_background') === 'true';
+    if (isBg) {
+        ipcRenderer.send('hide-idle-hero');
+    } else {
+        ipcRenderer.send('close-idle-hero');
+    }
+};
+
+document.getElementById('btn-settings').onclick = () => {
+    document.getElementById('chk-autostart').checked = localStorage.getItem('idle_hero_autostart') === 'true';
+    document.getElementById('chk-background').checked = localStorage.getItem('idle_hero_background') === 'true';
+    document.getElementById('modal-settings').style.display = 'flex';
+};
+
+window.saveSettings = function() {
+    localStorage.setItem('idle_hero_autostart', document.getElementById('chk-autostart').checked);
+    localStorage.setItem('idle_hero_background', document.getElementById('chk-background').checked);
+    document.getElementById('modal-settings').style.display = 'none';
+};
+
+window.confirmarReset = function() {
+    const input = document.getElementById('input-reset').value;
+    if (input === 'CERTEZA') {
+        localStorage.removeItem('idle_hero_save');
+        location.reload(); // Recarrega a janela do jogo para começar limpo
+    } else {
+        alert("Palavra incorreta. O progresso NÃO foi apagado.");
+        document.getElementById('modal-reset').style.display = 'none';
+        document.getElementById('input-reset').value = '';
     }
 };
 

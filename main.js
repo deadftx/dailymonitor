@@ -104,7 +104,7 @@ app.whenReady().then(() => {
             buttonLabel: 'Usar como Fundo',
             properties: ['openFile'],
             filters: [
-                { name: 'Mídia (Imagens e Vídeos)', extensions: ['jpg', 'png', 'jpeg', 'mp4', 'webm'] }
+                { name: 'Mídia (Imagens e Vídeos)', extensions: ['jpg', 'png', 'jpeg', 'gif', 'mp4', 'webm'] }
             ]
         });
         // Se o utilizador não cancelar, devolve o caminho exato
@@ -134,13 +134,14 @@ app.whenReady().then(() => {
     let idleHeroWindow = null;
     ipcMain.on('launch-idle-hero', () => {
         if (idleHeroWindow) {
+            idleHeroWindow.show();
             idleHeroWindow.focus();
             return;
         }
         
         idleHeroWindow = new BrowserWindow({
-            width: 350,
-            height: 550,
+            width: 330,
+            height: 600,
             frame: false,
             transparent: true,
             alwaysOnTop: true,
@@ -155,6 +156,14 @@ app.whenReady().then(() => {
         idleHeroWindow.on('closed', () => {
             idleHeroWindow = null;
         });
+    });
+
+    ipcMain.on('hide-idle-hero', () => {
+        if (idleHeroWindow) idleHeroWindow.hide();
+    });
+
+    ipcMain.on('close-idle-hero', () => {
+        if (idleHeroWindow) idleHeroWindow.close();
     });
 
     ipcMain.on('set-autostart', (event, enable) => {
