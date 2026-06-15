@@ -1,0 +1,345 @@
+:root {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --accent-color: #00ff88;
+    --card-bg: #1e1e1e;
+    --col-bg: #161616;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    /* O fundo base agora é 100% transparente desde o início para revelar o wallpaper */
+    background-color: transparent !important;
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 3rem;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* === MOTOR DE WALLPAPER E CAMADAS === */
+#bg-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    /* Camada Base (Fundo) */
+    background-color: var(--bg-color);
+    /* Cor de segurança caso não haja imagem */
+    overflow: hidden;
+}
+
+#bg-container img,
+#bg-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: fill;
+    /* Força a esticar e preencher a tela toda sem bordas */
+}
+
+/* Trazemos todo o conteúdo da agenda e o relógio para a frente do papel de parede */
+.content-area,
+#clock-container {
+    position: relative;
+    z-index: 10;
+    /* Camada da Frente */
+}
+
+.content-area {
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.header-agenda {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+button {
+    background-color: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-icon {
+    background-color: #333;
+    color: white;
+}
+
+.btn-icon:hover {
+    background-color: #444;
+}
+
+/* === BOARD KANBAN E ARRASTE === */
+.board-container {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    height: 60vh;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    cursor: grab;
+    user-select: none;
+}
+
+.board-container::-webkit-scrollbar {
+    display: none;
+}
+
+.category-column {
+    background-color: var(--col-bg);
+    border-radius: 12px;
+    min-width: 320px;
+    max-width: 350px;
+    display: flex;
+    flex-direction: column;
+    border-top: 4px solid var(--accent-color);
+}
+
+.category-header {
+    padding: 15px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.task-list {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.task-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* === CARDS DA TAREFA === */
+.task-card {
+    background-color: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.task-card:hover {
+    transform: scale(1.02);
+}
+
+.task-card.inativo {
+    opacity: 0.5;
+    border-left: 5px solid #555;
+}
+
+.task-card.ativo {
+    border-left: 5px solid var(--accent-color);
+}
+
+.task-click-area {
+    flex-grow: 1;
+    cursor: pointer;
+}
+
+.task-info h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.1rem;
+}
+
+.task-time {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-right: 15px;
+}
+
+.delete-btn {
+    background-color: #ff4444;
+    color: white;
+    padding: 5px 10px;
+    font-size: 1rem;
+    z-index: 10;
+}
+
+/* Relógio */
+#clock-container {
+    position: absolute;
+    bottom: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    text-shadow: 0px 4px 15px rgba(0, 0, 0, 0.8);
+}
+
+/* === MODAIS DE CONFIGURAÇÃO === */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-large {
+    width: 500px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="time"],
+.custom-select,
+textarea,
+.file-input {
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background: #333;
+    color: white;
+    width: 100%;
+    font-family: inherit;
+}
+
+textarea {
+    resize: none;
+}
+
+.linha-flex {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+/* Toggle Liga/Desliga */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--accent-color);
+}
+
+.toggle-container input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+}
+
+/* Dias da Semana */
+.dias-semana {
+    display: flex;
+    justify-content: space-between;
+    background: #333;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.dias-semana label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.dias-semana input {
+    accent-color: var(--accent-color);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-bottom: 5px;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.btn-success {
+    background-color: var(--accent-color);
+    color: black;
+}
+
+.btn-danger {
+    background-color: #ff4444;
+    color: white;
+}
+
+/* === ANIMAÇÃO DO ALARME DISPARANDO === */
+@keyframes piscar {
+    0% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ff4444;
+    }
+
+    50% {
+        opacity: 0.3;
+        text-shadow: none;
+    }
+
+    100% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ff4444;
+    }
+}
+
+.piscar {
+    animation: piscar 1s infinite;
+}

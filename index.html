@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="bg-container"></div>
+
+    <div class="content-area">
+        <div class="header-agenda">
+            <h1>Minha Agenda</h1>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-configuracoes" class="btn-icon">⚙️ Configurações</button>
+                <button id="btn-nova-tarefa">+ Nova Tarefa</button>
+            </div>
+        </div>
+
+        <div id="board-container" class="board-container">
+        </div>
+    </div>
+
+    <div id="clock-container">00:00</div>
+
+    <div id="modal-tarefa" class="modal">
+        <div class="modal-content">
+            <h2>Criar Novo Alarme</h2>
+            <label>Título da Tarefa:</label>
+            <input type="text" id="input-titulo" placeholder="Ex: Tomar remédio">
+            <label>Horário:</label>
+            <input type="time" id="input-hora">
+            <label>Categoria:</label>
+            <input type="text" id="input-categoria" placeholder="Ex: Rotina, Saúde, Lazer...">
+            <div class="modal-actions">
+                <button id="btn-salvar-tarefa" class="btn-success">Salvar</button>
+                <button id="btn-fechar-modal" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-editar" class="modal">
+        <div class="modal-content modal-large">
+            <h2>Configurar Alarme</h2>
+            <div class="linha-flex">
+                <label class="toggle-container">
+                    <input type="checkbox" id="edit-ativo">
+                    <span class="toggle-text">Alarme Ligado</span>
+                </label>
+            </div>
+            <label>Título:</label>
+            <input type="text" id="edit-titulo">
+            <div class="linha-flex" style="gap: 15px;">
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label>Horário:</label>
+                    <input type="time" id="edit-hora">
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label>Categoria:</label>
+                    <input type="text" id="edit-categoria">
+                </div>
+            </div>
+            <label>Avisar antes do evento:</label>
+            <select id="edit-pre-aviso" class="custom-select">
+                <option value="0">Na hora exata</option>
+                <option value="15">15 minutos antes</option>
+                <option value="30">30 minutos antes</option>
+                <option value="45">45 minutos antes</option>
+                <option value="60">1 hora antes</option>
+            </select>
+            <label>Repetir nos dias:</label>
+            <div class="dias-semana" id="edit-dias">
+                <label><input type="checkbox" value="0"> Dom</label>
+                <label><input type="checkbox" value="1"> Seg</label>
+                <label><input type="checkbox" value="2"> Ter</label>
+                <label><input type="checkbox" value="3"> Qua</label>
+                <label><input type="checkbox" value="4"> Qui</label>
+                <label><input type="checkbox" value="5"> Sex</label>
+                <label><input type="checkbox" value="6"> Sáb</label>
+            </div>
+            <label>Anotações:</label>
+            <textarea id="edit-notas" rows="3" placeholder="Insira detalhes..."></textarea>
+            <div class="modal-actions">
+                <button id="btn-salvar-edicao" class="btn-success">Atualizar</button>
+                <button id="btn-fechar-edicao" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-alerta" class="modal" style="z-index: 9999;">
+        <div class="modal-content" style="border: 4px solid #ff4444; align-items: center; text-align: center;">
+            <h1 class="piscar" style="color: #ff4444; font-size: 3rem; margin: 0;">⏰ ALARME!</h1>
+            <h2 id="alerta-titulo" style="font-size: 2rem; margin: 10px 0;">Título</h2>
+            <p id="alerta-hora" style="font-size: 1.5rem; opacity: 0.8; margin: 0;"></p>
+            <p id="alerta-notas" style="font-size: 1.2rem; color: #aaa; margin-top: 15px;"></p>
+            <button id="btn-parar-alarme" class="btn-danger"
+                style="font-size: 1.5rem; padding: 15px 30px; margin-top: 25px; width: 100%;">PARAR ALARME</button>
+        </div>
+    </div>
+
+    <div id="modal-config" class="modal">
+        <div class="modal-content modal-large">
+            <h2>Configurações do Sistema</h2>
+
+            <div class="linha-flex">
+                <label class="toggle-container">
+                    <input type="checkbox" id="config-autostart">
+                    <span class="toggle-text">Iniciar Automaticamente com o Windows</span>
+                </label>
+            </div>
+
+            <label>Monitor Padrão (Onde a tela cheia vai abrir):</label>
+            <select id="config-monitor" class="custom-select"></select>
+
+            <label>Dispositivo de Saída de Áudio (Alarme):</label>
+            <select id="config-audio" class="custom-select"></select>
+
+            <label>Papel de Parede (Imagem ou Vídeo MP4):</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <button id="btn-escolher-wp" class="btn-success" style="flex: 1; font-size: 1rem;">📁 Procurar
+                    Arquivo</button>
+                <button id="btn-limpar-wp" class="btn-danger" style="font-size: 1rem;">🗑️ Remover Fundo</button>
+            </div>
+            <p id="nome-arquivo-escolhido"
+                style="margin: 0 0 15px 0; font-size: 0.9rem; color: #aaa; word-break: break-all;">Nenhum arquivo
+                selecionado</p>
+            <label style="margin-top: 15px;">Opacidade do Papel de Parede:</label>
+            <input type="range" id="config-opacidade" min="0" max="1" step="0.1" value="0.5">
+
+            <div class="modal-actions">
+                <button id="btn-salvar-config" class="btn-success">Salvar Configurações</button>
+                <button id="btn-fechar-config" class="btn-danger">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
