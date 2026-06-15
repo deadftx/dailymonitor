@@ -119,14 +119,20 @@ app.whenReady().then(() => {
         }));
     });
 
-    ipcMain.on('set-monitor', (event, displayId) => {
+    ipcMain.on('set-monitor', (event, displayId, fullscreen = true) => {
         if (!displayId) return;
         const displays = screen.getAllDisplays();
         const targetDisplay = displays.find(d => d.id.toString() === displayId.toString());
 
         if (targetDisplay && mainWindow) {
             mainWindow.setBounds(targetDisplay.bounds);
-            mainWindow.setFullScreen(true);
+            mainWindow.setFullScreen(fullscreen);
+        }
+    });
+
+    ipcMain.on('set-fullscreen', (event, isFullscreen) => {
+        if (mainWindow) {
+            mainWindow.setFullScreen(isFullscreen);
         }
     });
 

@@ -4,6 +4,7 @@ const { ipcRenderer } = require('electron');
 // ====== CONFIGURAÇÕES DO SISTEMA ======
 let configApp = {
     autostart: false,
+    fullscreen: true,
     monitorId: "",
     audioDeviceId: "default",
     audioDeviceIdYt: "default",
@@ -23,11 +24,13 @@ let tipoEmEdicao = null; // 'recorrente' ou 'momentanea'
 async function carregarConfiguracoes() {
     const salvo = localStorage.getItem('tv_config');
     if (salvo) configApp = JSON.parse(salvo);
+    if (configApp.fullscreen === undefined) configApp.fullscreen = true;
 
     ipcRenderer.send('set-autostart', configApp.autostart);
+    ipcRenderer.send('set-fullscreen', configApp.fullscreen);
 
     if (configApp.monitorId) {
-        ipcRenderer.send('set-monitor', configApp.monitorId);
+        ipcRenderer.send('set-monitor', configApp.monitorId, configApp.fullscreen);
     }
 
     aplicarWallpaper();
@@ -95,6 +98,7 @@ let caminhoWallpaperTemporario = configApp.wallpaperPath;
 
 document.getElementById('btn-configuracoes').onclick = () => {
     document.getElementById('config-autostart').checked = configApp.autostart;
+    document.getElementById('config-fullscreen').checked = configApp.fullscreen !== false;
     document.getElementById('config-opacidade').value = configApp.wallpaperOpacity;
     caminhoWallpaperTemporario = configApp.wallpaperPath;
     document.getElementById('nome-arquivo-escolhido').innerText = configApp.wallpaperPath || "Nenhum selecionado";
@@ -110,6 +114,7 @@ document.getElementById('btn-limpar-wp').onclick = () => {
 };
 document.getElementById('btn-salvar-config').onclick = () => {
     configApp.autostart = document.getElementById('config-autostart').checked;
+    configApp.fullscreen = document.getElementById('config-fullscreen').checked;
     configApp.monitorId = document.getElementById('config-monitor').value;
     configApp.audioDeviceId = document.getElementById('config-audio').value;
     if (document.getElementById('config-audio-yt')) {
@@ -1234,6 +1239,20 @@ function renderizarProximosEventosAgenda() {
         div.className = 'momentary-item';
         div.style.padding = '6px 8px';
         div.style.flexShrink = '0'; // Garante que não sejam esmagados
+        div.style.cursor = 'pointer'; // Feedback visual de clique
+        div.onclick = () => {
+            const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const ano = ev.dateObj.getFullYear();
+            const mes = ev.dateObj.getMonth();
+            const dia = ev.dateObj.getDate();
+            const dataOriginalStr = `${ano}-${(mes+1).toString().padStart(2,'0')}-${dia.toString().padStart(2,'0')}`;
+            
+            modalAgenda.style.display = 'flex';
+            carregarAgenda();
+            agendaCurrentDate = new Date(ano, mes, 1);
+            renderizarCalendario();
+            abrirDia(dataOriginalStr, dia, mNames[mes]);
+        };
         div.innerHTML = `
             <div class="momentary-item-text" style="color: #fff; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
                 <span style="color: #2ecc71;">[${ev.dateStr}]</span> 
