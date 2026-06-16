@@ -22,11 +22,12 @@
   "homepage": "https://github.com/deadftx/dailymonitor#readme",
   "build": {
     "appId": "com.deadftx.dailymonitor",
-    "productName": "Daily Monitor",
+    "productName": "DailyMonitorLauncher",
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "DailyMonitorLauncher.exe"
     },
     "nsis": {
       "oneClick": true,
