@@ -11,7 +11,8 @@ let configApp = {
     audioDeviceLabelYt: "",
     wallpaperPath: "",
     wallpaperOpacity: 0.5,
-    alwaysOn: false
+    alwaysOn: false,
+    wallpaperMode: false
 };
 
 // Nova Estrutura para os Lembretes Momentâneos (inclui dados de alarme)
@@ -30,6 +31,7 @@ async function carregarConfiguracoes() {
     ipcRenderer.send('set-autostart', configApp.autostart);
     ipcRenderer.send('set-fullscreen', configApp.fullscreen);
     ipcRenderer.send('set-alwayson', configApp.alwaysOn);
+    ipcRenderer.send('set-wallpaper-mode', configApp.wallpaperMode);
 
     if (configApp.monitorId) {
         ipcRenderer.send('set-monitor', configApp.monitorId, configApp.fullscreen);
@@ -102,6 +104,7 @@ document.getElementById('btn-configuracoes').onclick = () => {
     document.getElementById('config-autostart').checked = configApp.autostart;
     document.getElementById('config-fullscreen').checked = configApp.fullscreen !== false;
     document.getElementById('config-alwayson').checked = configApp.alwaysOn;
+    document.getElementById('config-wallpaper-mode').checked = configApp.wallpaperMode;
     document.getElementById('config-opacidade').value = configApp.wallpaperOpacity;
     caminhoWallpaperTemporario = configApp.wallpaperPath;
     document.getElementById('nome-arquivo-escolhido').innerText = configApp.wallpaperPath || "Nenhum selecionado";
@@ -119,6 +122,10 @@ document.getElementById('btn-salvar-config').onclick = () => {
     configApp.autostart = document.getElementById('config-autostart').checked;
     configApp.fullscreen = document.getElementById('config-fullscreen').checked;
     configApp.alwaysOn = document.getElementById('config-alwayson').checked;
+    
+    let oldWallpaperMode = configApp.wallpaperMode;
+    configApp.wallpaperMode = document.getElementById('config-wallpaper-mode').checked;
+
     configApp.monitorId = document.getElementById('config-monitor').value;
     configApp.audioDeviceId = document.getElementById('config-audio').value;
     if (document.getElementById('config-audio-yt')) {
@@ -133,6 +140,12 @@ document.getElementById('btn-salvar-config').onclick = () => {
     modalConfig.style.display = 'none';
 
     carregarConfiguracoes();
+
+    if (oldWallpaperMode !== configApp.wallpaperMode) {
+        // Envia o novo valor imediatamente e reinicia o app
+        ipcRenderer.send('set-wallpaper-mode', configApp.wallpaperMode);
+        ipcRenderer.send('restart-app');
+    }
 };
 
 // ====== VARIÁVEIS GLOBAIS DA AGENDA ======

@@ -1,7 +1,25 @@
 const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const fs = require('fs');
 const { exec } = require('child_process');
+
+const configPath = path.join(app.getPath('userData'), 'config.json');
+
+function getConfig() {
+    try {
+        if (fs.existsSync(configPath)) {
+            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+    } catch (e) {}
+    return { wallpaperMode: false };
+}
+
+function saveConfig(key, value) {
+    const config = getConfig();
+    config[key] = value;
+    fs.writeFileSync(configPath, JSON.stringify(config));
+}
 
 // Bloqueia APIs Nativas do Chromium que causam popups indesejados (ex: Passkeys, WebAuthn, Bluetooth, USB)
 app.commandLine.appendSwitch('disable-features', 'WebBluetooth,WebAuthentication,WebUsb');
@@ -102,45 +120,100 @@ function createSplashWindow() {
 }
 
 function createMainWindow() {
-    mainWindow = new BrowserWindow({
+    const userConfig = getConfig();
+    const windowOptions = {
         width: 1280,
         height: 720,
         show: false, // Esconde no começo
         fullscreen: false,
         autoHideMenuBar: true,
+        frame: false,
+        transparent: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: false,
             webviewTag: true
         }
-    });
+    };
+
+    mainWindow = new BrowserWindow(windowOptions);
+
+    if (userConfig.wallpaperMode) {
+        // Modo Wallpaper Verdadeiro via PowerShell
+        mainWindow.webContents.once('did-finish-load', () => {
+            const hwndBuf = mainWindow.getNativeWindowHandle();
+            const hwnd = hwndBuf.readInt32LE(0);
+            const psScript = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+    [DllImport("user32.dll")] public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+    [DllImport("user32.dll")] public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+    [DllImport("user32.dll")] public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+    [DllImport("user32.dll")] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+}
+"@
+[IntPtr]$progman = [Win32]::FindWindow("Progman", $null)
+[IntPtr]$result = [IntPtr]::Zero
+[Win32]::SendMessageTimeout($progman, 0x052C, [IntPtr]::Zero, [IntPtr]::Zero, 0, 1000, [ref]$result)
+$workerW = [IntPtr]::Zero
+do {
+    $workerW = [Win32]::FindWindowEx([IntPtr]::Zero, $workerW, "WorkerW", $null)
+    if ($workerW -ne [IntPtr]::Zero) {
+        $defView = [Win32]::FindWindowEx($workerW, [IntPtr]::Zero, "SHELLDLL_DefView", $null)
+        if ($defView -ne [IntPtr]::Zero) {
+            $targetWorkerW = [Win32]::FindWindowEx([IntPtr]::Zero, $workerW, "WorkerW", $null)
+            if ($targetWorkerW -ne [IntPtr]::Zero) {
+                [Win32]::SetParent([IntPtr]${hwnd}, $targetWorkerW)
+                break
+            }
+        }
+    }
+} while ($workerW -ne [IntPtr]::Zero)
+`;
+            exec(`powershell -NoProfile -Command "${psScript.replace(/\n/g, '; ')}"`, (err) => {
+                if (err) console.error("Falha ao injetar Wallpaper Mode:", err);
+            });
+        });
+    }
 
     mainWindow.loadFile('index.html');
 
     mainWindow.on('minimize', (e) => {
         if (alwaysOnEnabled) {
             e.preventDefault();
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.restore();
-            }
+            const wasFullscreen = mainWindow.isFullScreen();
+            setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.restore();
+                    mainWindow.show();
+                    if (wasFullscreen) {
+                        mainWindow.setFullScreen(true);
+                    }
+                }
+            }, 250);
         }
     });
 
-    // Hack para driblar o Windows+D que joga o Desktop por cima de tudo
-    mainWindow.on('blur', () => {
-        if (alwaysOnEnabled && mainWindow && !mainWindow.isDestroyed()) {
-            // Força a janela a subir acima do Desktop, e logo em seguida
-            // remove o status de "Always on Top" para permitir que 
-            // outras janelas abram na frente dela normalmente.
-            mainWindow.setAlwaysOnTop(true, 'normal');
+    mainWindow.on('hide', (e) => {
+        if (alwaysOnEnabled) {
+            e.preventDefault();
+            const wasFullscreen = mainWindow.isFullScreen();
             setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.setAlwaysOnTop(false);
+                    mainWindow.show();
+                    if (wasFullscreen) {
+                        mainWindow.setFullScreen(true);
+                    }
                 }
-            }, 50);
+            }, 250);
         }
     });
+
+    // O Hack do blur foi removido porque só funcionava quando a janela estava ativa.
+    // Agora confiamos no evento 'minimize' abaixo, que vai disparar pois a janela
+    // ficará na barra de tarefas (skipTaskbar: false).
 
     mainWindow.webContents.once('did-finish-load', () => {
         setTimeout(() => {
@@ -300,15 +373,26 @@ app.whenReady().then(() => {
         });
     });
 
+    ipcMain.on('set-wallpaper-mode', (event, enable) => {
+        saveConfig('wallpaperMode', enable);
+    });
+
+    ipcMain.on('restart-app', () => {
+        app.relaunch();
+        app.exit(0);
+    });
+
     ipcMain.on('set-alwayson', (event, enable) => {
         alwaysOnEnabled = enable;
         if (mainWindow) {
-            mainWindow.setSkipTaskbar(enable);
-            mainWindow.setMinimizable(!enable);
+            // Se NÃO estivermos no Modo Wallpaper absoluto, vamos deixar na barra de tarefas
+            // para que o Win+D force o 'minimize' e a gente consiga trazer de volta (com a piscada).
+            if (!getConfig().wallpaperMode) {
+                mainWindow.setSkipTaskbar(false);
+                mainWindow.setMinimizable(true);
+            }
             if (enable) {
                 mainWindow.setAlwaysOnTop(false);
-                // Trick to force it to show up if DWM hid it
-                mainWindow.showInactive();
             }
         }
     });
