@@ -4,21 +4,97 @@ const path = require('path');
 
 let mainWindow;
 let splashWindow;
+let patcherWindow;
 
-function createWindow() {
+function createPatcherWindow() {
+    patcherWindow = new BrowserWindow({
+        width: 1000,
+        height: 600,
+        transparent: true,
+        frame: false,
+        alwaysOnTop: true,
+        center: true,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    patcherWindow.loadFile('patcher.html');
+
+    function sendStatusToPatcher(type, message) {
+        if(patcherWindow && !patcherWindow.isDestroyed()) {
+            patcherWindow.webContents.send('updater-message', type, message);
+        }
+    }
+
+    autoUpdater.on('checking-for-update', () => sendStatusToPatcher('checking'));
+    autoUpdater.on('update-available', () => sendStatusToPatcher('update-available'));
+    autoUpdater.on('update-not-available', () => {
+        sendStatusToPatcher('update-not-available');
+        setTimeout(() => {
+            if(patcherWindow && !patcherWindow.isDestroyed()) patcherWindow.close();
+            createSplashWindow();
+        }, 2000); // Dá um tempo para o usuário ver o 100%
+    });
+    autoUpdater.on('error', (err) => {
+        sendStatusToPatcher('error', err == null ? "unknown" : (err.message || err).toString());
+        setTimeout(() => {
+            if(patcherWindow && !patcherWindow.isDestroyed()) patcherWindow.close();
+            createSplashWindow();
+        }, 3000);
+    });
+    autoUpdater.on('download-progress', (progressObj) => {
+        let percent = Math.round(progressObj.percent);
+        sendStatusToPatcher('download-progress', percent);
+    });
+    autoUpdater.on('update-downloaded', () => {
+        sendStatusToPatcher('update-downloaded');
+        setTimeout(() => {
+            autoUpdater.quitAndInstall(true, true);
+        }, 2000);
+    });
+
+    patcherWindow.webContents.once('did-finish-load', () => {
+        if (!app.isPackaged) {
+            // Em modo desenvolvedor, ignora a busca real e apenas simula rápido
+            sendStatusToPatcher('checking');
+            setTimeout(() => {
+                sendStatusToPatcher('update-not-available');
+                setTimeout(() => {
+                    if(patcherWindow && !patcherWindow.isDestroyed()) patcherWindow.close();
+                    createSplashWindow();
+                }, 2000);
+            }, 1000);
+        } else {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
+    });
+}
+
+function createSplashWindow() {
     splashWindow = new BrowserWindow({
         width: 500,
         height: 350,
         transparent: true,
         frame: false,
         alwaysOnTop: true,
+        center: true,
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            contextIsolation: false
         }
     });
 
     splashWindow.loadFile('splash.html');
 
+    splashWindow.webContents.once('did-finish-load', () => {
+        splashWindow.webContents.send('updater-message', 'loading-modules');
+        createMainWindow();
+    });
+}
+
+function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
@@ -34,53 +110,12 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
-    // mainWindow.webContents.openDevTools(); // Comentado DevTools para ficar limpo para o usuário final
 
-    function sendStatusToWindow(type, message) {
-        if(splashWindow && !splashWindow.isDestroyed()) {
-            splashWindow.webContents.send('updater-message', type, message);
-        }
-    }
-
-    autoUpdater.on('checking-for-update', () => sendStatusToWindow('checking'));
-    autoUpdater.on('update-available', () => sendStatusToWindow('update-available'));
-    autoUpdater.on('update-not-available', () => {
-        sendStatusToWindow('update-not-available');
+    mainWindow.webContents.once('did-finish-load', () => {
         setTimeout(() => {
             if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
             if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
-        }, 1500);
-    });
-    autoUpdater.on('error', (err) => {
-        sendStatusToWindow('error', err == null ? "unknown" : (err.message || err).toString());
-        setTimeout(() => {
-            if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
-            if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
-        }, 3000);
-    });
-    autoUpdater.on('download-progress', (progressObj) => {
-        let percent = Math.round(progressObj.percent);
-        sendStatusToWindow('download-progress', percent);
-    });
-    autoUpdater.on('update-downloaded', () => {
-        sendStatusToWindow('update-downloaded');
-        setTimeout(() => {
-            // isSilent = true, isForceRunAfter = true
-            autoUpdater.quitAndInstall(true, true);
-        }, 2000);
-    });
-
-    splashWindow.webContents.once('did-finish-load', () => {
-        if (!app.isPackaged) {
-            // Em modo desenvolvedor, ignora a busca real e apenas finge pra iniciar rápido
-            sendStatusToWindow('update-not-available');
-            setTimeout(() => {
-                if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
-                if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
-            }, 1000);
-        } else {
-            autoUpdater.checkForUpdatesAndNotify();
-        }
+        }, 1500); // Tempo rápido no splash final
     });
 }
 
@@ -95,7 +130,7 @@ app.whenReady().then(() => {
         return true;
     });
 
-    createWindow();
+    createPatcherWindow();
 
     // NOVO: Chama a janela nativa do Windows para escolher ficheiros
     ipcMain.handle('select-wallpaper', async () => {

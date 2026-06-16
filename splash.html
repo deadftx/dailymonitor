@@ -82,32 +82,21 @@
         const statusDesc = document.getElementById('status-desc');
         const loaderFill = document.getElementById('loader-fill');
         
+        // Inicialização estática como tela de loading
+        statusTitle.innerText = "Iniciando sistema...";
+        statusDesc.innerText = "Carregando módulos";
+        
+        // Simular o carregamento final (pois já passou pelo patcher)
+        setTimeout(() => {
+            loaderFill.style.width = "100%";
+        }, 100);
+        
+        // Caso queira interagir de main.js
         ipcRenderer.on('updater-message', (event, type, message) => {
-            if(type === 'checking') {
-                statusTitle.innerText = "Buscando atualizações...";
-                statusDesc.innerText = "Conectando ao GitHub";
-                loaderFill.style.width = "20%";
-            } else if(type === 'update-available') {
-                statusTitle.innerText = "Nova versão encontrada!";
-                statusDesc.innerText = "Preparando o download...";
-                loaderFill.style.width = "40%";
-            } else if(type === 'update-not-available') {
-                statusTitle.innerText = "Você está na última versão!";
-                statusDesc.innerText = "Iniciando o sistema...";
+            if(type === 'loading-modules') {
+                statusTitle.innerText = "Iniciando sistema...";
+                statusDesc.innerText = "Carregando módulos principais";
                 loaderFill.style.width = "100%";
-            } else if(type === 'download-progress') {
-                statusTitle.innerText = "Baixando atualização...";
-                statusDesc.innerText = message + "% concluído";
-                loaderFill.style.width = message + "%";
-            } else if(type === 'update-downloaded') {
-                statusTitle.innerText = "Atualização pronta!";
-                statusDesc.innerText = "Reiniciando para aplicar...";
-                loaderFill.style.width = "100%";
-            } else if(type === 'error') {
-                statusTitle.innerText = "Erro ao buscar atualização";
-                statusDesc.innerText = message;
-                loaderFill.style.width = "100%";
-                loaderFill.style.background = "#e74c3c";
             }
         });
     </script>

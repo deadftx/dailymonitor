@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Launcher</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: url('img/loading.png') center/cover no-repeat;
+            background-color: #1a1a1a;
+            display: flex; flex-direction: column;
+            justify-content: flex-end;
+            height: 100vh;
+            color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
+        }
+
+        .footer {
+            background-color: rgba(15, 18, 25, 0.95);
+            padding: 25px 40px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .percentage {
+            font-size: 3.5rem;
+            font-weight: 300;
+            margin-right: 30px;
+            min-width: 140px;
+            text-align: right;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+        .percentage span {
+            font-size: 1.5rem;
+            color: #aaa;
+        }
+
+        .info-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .status-message {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #b88645, #dfba7c);
+            box-shadow: 0 0 10px rgba(223, 186, 124, 0.6);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="footer">
+        <div class="percentage" id="percent-text">0<span>%</span></div>
+        <div class="info-container">
+            <div class="status-row">
+                <div class="status-message" id="status-title">Verificando arquivos...</div>
+                <div class="status-details" id="status-desc">Aguarde</div>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        const percentText = document.getElementById('percent-text');
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+        const progressFill = document.getElementById('progress-fill');
+        
+        ipcRenderer.on('updater-message', (event, type, message) => {
+            if(type === 'checking') {
+                statusTitle.innerText = "Buscando atualizações...";
+                statusDesc.innerText = "Conectando ao servidor";
+                progressFill.style.width = "10%";
+                percentText.innerHTML = "0<span>%</span>";
+            } else if(type === 'update-available') {
+                statusTitle.innerText = "Nova atualização encontrada";
+                statusDesc.innerText = "Preparando o download...";
+                progressFill.style.width = "20%";
+                percentText.innerHTML = "20<span>%</span>";
+            } else if(type === 'update-not-available') {
+                statusTitle.innerText = "A atualização do cliente foi efetuada com sucesso.";
+                statusDesc.innerText = "Iniciando automaticamente...";
+                progressFill.style.width = "100%";
+                percentText.innerHTML = "100<span>%</span>";
+            } else if(type === 'download-progress') {
+                statusTitle.innerText = "Baixando atualização do cliente...";
+                statusDesc.innerText = message + "% concluído";
+                progressFill.style.width = message + "%";
+                percentText.innerHTML = message + "<span>%</span>";
+            } else if(type === 'update-downloaded') {
+                statusTitle.innerText = "A atualização do cliente foi efetuada com sucesso.";
+                statusDesc.innerText = "Reiniciando para aplicar...";
+                progressFill.style.width = "100%";
+                percentText.innerHTML = "100<span>%</span>";
+            } else if(type === 'error') {
+                statusTitle.innerText = "Erro ao atualizar";
+                statusDesc.innerText = message;
+                progressFill.style.width = "100%";
+                progressFill.style.background = "#e74c3c";
+            }
+        });
+    </script>
+</body>
+</html>
