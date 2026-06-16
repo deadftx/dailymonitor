@@ -21,6 +21,11 @@
                 <span id="weather-temp" style="font-size: 1.1rem;">--°C</span>
                 <span id="weather-desc" style="font-size: 0.8rem; opacity: 0.8; margin-left: 5px; text-transform: capitalize;">Buscando...</span>
             </div>
+            
+            <!-- Widget de USB Dinâmico -->
+            <div id="usb-widget" style="display: none; position: absolute; left: 30%; top: 50%; transform: translateY(-50%); gap: 8px; align-items: center;">
+                <!-- Preenchido via script -->
+            </div>
 
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
                 <div style="display: flex; gap: 10px;">
@@ -35,6 +40,10 @@
                     <button id="btn-alertas-games" class="btn-icon" style="background: rgba(155, 89, 182, 0.2); border-color: rgba(155, 89, 182, 0.4);">🔔 Alertas Gamers</button>
                     <button id="btn-pomodoro" class="btn-icon" style="background: rgba(231, 76, 60, 0.6); border-color: rgba(231, 76, 60, 0.8); font-weight: bold;">🎯 FOCUS</button>
                     <button id="btn-game-center" class="btn-icon" style="background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.4);">🕹️ Game Center</button>
+                    <button id="btn-mensagens" class="btn-icon" style="background: rgba(39, 174, 96, 0.2); border-color: rgba(39, 174, 96, 0.4); position: relative;">
+                        💬 Mensagens
+                        <div id="msg-badge" style="display: none; position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; box-shadow: 0 0 8px #e74c3c;"></div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -253,7 +262,7 @@
                 <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
             </div>
             
-            <div id="agenda-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); auto-rows: 1fr; gap: 5px; flex: 1; overflow-y: auto;">
+            <div id="agenda-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; gap: 5px; flex: 1; overflow-y: auto;">
                 <!-- Dias gerados via JS -->
             </div>
             
@@ -271,8 +280,34 @@
             <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 15px;">
             <label>Novo Evento:</label>
             <input type="text" id="agenda-evento-title" placeholder="Ex: Reunião">
-            <label>Hora (Opcional):</label>
-            <input type="time" id="agenda-evento-time">
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1">
+                    <label>Hora (Opcional):</label>
+                    <input type="time" id="agenda-evento-time">
+                </div>
+                <div style="flex:1">
+                    <label>Categoria:</label>
+                    <input type="text" id="agenda-evento-cat" placeholder="Ex: Trabalho, Pessoal">
+                </div>
+            </div>
+
+            <label>Recorrência:</label>
+            <select id="agenda-evento-rec" class="custom-select">
+                <option value="none">Apenas hoje</option>
+                <option value="daily">Diariamente</option>
+                <option value="weekdays">Dias Úteis (Seg-Sex)</option>
+                <option value="weekends">Finais de Semana</option>
+                <option value="weekly">Semanalmente</option>
+                <option value="biweekly">Quinzenalmente</option>
+                <option value="monthly">Mensalmente</option>
+            </select>
+
+            <label class="toggle-container" style="margin-top: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="agenda-evento-dash">
+                <span class="toggle-text">Mostrar no Dashboard Principal</span>
+            </label>
+
             <div class="modal-actions">
                 <button id="btn-salvar-evento" class="btn-success">Adicionar</button>
                 <button id="btn-fechar-evento" class="btn-danger">Fechar</button>
@@ -539,6 +574,37 @@
             <webview id="yt-webview" src="https://music.youtube.com"
                 useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15"
                 style="flex-grow: 1; border-radius: 8px; border: 1px solid #333;" allowpopups disablewebsecurity webpreferences="allowRunningInsecureContent=yes"></webview>
+        </div>
+    </div>
+
+    <!-- Messages Modal -->
+    <div id="modal-mensagens" class="modal">
+        <div class="modal-content"
+            style="width: 95vw; height: 95vh; max-width: 1600px; display: flex; flex-direction: column; padding: 10px; background: #111;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <button id="tab-whatsapp" class="btn-success" style="background: #25D366; border-color: #25D366; color: white; position: relative;">
+                        WhatsApp Web
+                        <div id="tab-whatsapp-badge" style="display: none; position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; box-shadow: 0 0 5px #e74c3c;"></div>
+                    </button>
+                    <button id="tab-discord" class="btn-icon" style="background: #5865F2; border-color: #5865F2; color: white; position: relative;">
+                        Discord
+                        <div id="tab-discord-badge" style="display: none; position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; box-shadow: 0 0 5px #e74c3c;"></div>
+                    </button>
+                </div>
+                <h2 style="margin: 0; color: #ccc;">Central de Mensagens</h2>
+                <button id="btn-fechar-mensagens" class="btn-danger" style="padding: 5px 15px;">✖ Fechar</button>
+            </div>
+            
+            <div id="msg-webviews-container" style="flex-grow: 1; position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #333; background: #000;">
+                <webview id="whatsapp-webview" src="https://web.whatsapp.com/"
+                    useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    style="width: 100%; height: 100%; position: absolute; top:0; left:0; display:flex;" allowpopups disablewebsecurity webpreferences="allowRunningInsecureContent=yes"></webview>
+                    
+                <webview id="discord-webview" src="https://discord.com/app"
+                    useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    style="width: 100%; height: 100%; position: absolute; top:0; left:0; display:none;" allowpopups disablewebsecurity webpreferences="allowRunningInsecureContent=yes"></webview>
+            </div>
         </div>
     </div>
 

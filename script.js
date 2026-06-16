@@ -253,26 +253,67 @@ function salvarTarefas() { localStorage.setItem('tv_tarefas', JSON.stringify(tar
 function renderizarTarefas() {
     const board = document.getElementById('board-container');
     if (!board) return; board.innerHTML = '';
-    const cats = [...new Set(tarefas.map(t => t.category))];
+    
+    let combinedTarefas = [...tarefas];
+    const hoje = new Date();
+    if (typeof getEventosParaData === 'function') {
+        const evs = getEventosParaData(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        evs.forEach(ev => {
+            if (ev.dash) {
+                combinedTarefas.push({
+                    id: ev.id,
+                    title: ev.title,
+                    time: ev.time || 'S/H',
+                    category: ev.cat || 'Agenda do Dia',
+                    ativo: true,
+                    isAgenda: true,
+                    originStr: ev.originStr
+                });
+            }
+        });
+    }
+
+    const cats = [...new Set(combinedTarefas.map(t => t.category))];
     cats.forEach(c => {
         const col = document.createElement('div'); col.className = 'category-column';
         const head = document.createElement('div'); head.className = 'category-header'; head.innerText = c;
         col.appendChild(head);
         const list = document.createElement('div'); list.className = 'task-list';
-        const tasks = tarefas.filter(t => t.category === c).sort((a, b) => a.time.localeCompare(b.time));
+        const tasks = combinedTarefas.filter(t => t.category === c).sort((a, b) => (a.time||'').localeCompare(b.time||''));
         tasks.forEach(t => {
-            const card = document.createElement('div'); card.className = `task-card ${t.ativo ? 'ativo' : 'inactive'}`;
+            const card = document.createElement('div'); card.className = `task-card ${t.ativo ? 'ativo' : 'inactive'} ${t.isAgenda ? 'agenda-task' : ''}`;
+            if (t.isAgenda) {
+                card.style.borderLeft = '4px solid #f39c12';
+                card.style.background = 'rgba(243, 156, 18, 0.1)';
+            }
             card.innerHTML = `
-                <div class="task-click-area" data-id="${t.id}"><div class="task-info"><h3>${t.title}</h3></div></div>
+                <div class="task-click-area" data-id="${t.id}" data-isagenda="${t.isAgenda ? '1' : '0'}" data-origin="${t.originStr || ''}"><div class="task-info"><h3>${t.title}</h3></div></div>
                 <div class="task-time">${t.time}</div>
-                <button class="delete-btn" data-id="${t.id}">X</button>
+                <button class="delete-btn" data-id="${t.id}" data-isagenda="${t.isAgenda ? '1' : '0'}" data-origin="${t.originStr || ''}">X</button>
             `;
             list.appendChild(card);
         });
         col.appendChild(list); board.appendChild(col);
     });
-    document.querySelectorAll('.delete-btn').forEach(b => b.onclick = (e) => deletarTarefa(parseInt(e.target.getAttribute('data-id'))));
-    document.querySelectorAll('.task-click-area').forEach(a => a.onclick = (e) => abrirEdicaoRecorrente(parseInt(e.currentTarget.getAttribute('data-id'))));
+    
+    document.querySelectorAll('.delete-btn').forEach(b => b.onclick = (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'));
+        if (e.target.getAttribute('data-isagenda') === '1') {
+            const originStr = e.target.getAttribute('data-origin');
+            deletarEventoAgenda(id, originStr);
+        } else {
+            deletarTarefa(id);
+        }
+    });
+    
+    document.querySelectorAll('.task-click-area').forEach(a => a.onclick = (e) => {
+        if (e.currentTarget.getAttribute('data-isagenda') === '1') {
+            // Abrir agenda se for evento
+            if (document.getElementById('btn-agenda')) document.getElementById('btn-agenda').click();
+        } else {
+            abrirEdicaoRecorrente(parseInt(e.currentTarget.getAttribute('data-id')));
+        }
+    });
 }
 function deletarTarefa(id) { tarefas = tarefas.filter(t => t.id !== id); salvarTarefas(); renderizarTarefas(); }
 
@@ -1193,11 +1234,52 @@ function carregarAgenda() {
     const salvo = localStorage.getItem('tv_agenda');
     agendaEvents = salvo ? JSON.parse(salvo) : {};
     renderizarProximosEventosAgenda();
+    if (typeof renderizarTarefas === 'function') renderizarTarefas(); // Atualiza dashboard
 }
 
 function salvarAgenda() {
     localStorage.setItem('tv_agenda', JSON.stringify(agendaEvents));
     renderizarProximosEventosAgenda();
+    if (typeof renderizarTarefas === 'function') renderizarTarefas();
+}
+
+function getEventosParaData(targetAno, targetMes, targetDia) {
+    const targetDateStr = `${targetAno}-${(targetMes+1).toString().padStart(2,'0')}-${targetDia.toString().padStart(2,'0')}`;
+    const targetDate = new Date(targetAno, targetMes, targetDia);
+    const result = [];
+    
+    for (const dataStr in agendaEvents) {
+        const [oAno, oMes, oDia] = dataStr.split('-');
+        const originDate = new Date(oAno, oMes - 1, oDia);
+        
+        agendaEvents[dataStr].forEach(ev => {
+            const rec = ev.rec || 'none';
+            if (targetDate < originDate) return;
+            
+            if (rec === 'none' && targetDateStr === dataStr) {
+                result.push({...ev, originStr: dataStr});
+            } else if (rec === 'daily') {
+                result.push({...ev, originStr: dataStr});
+            } else if (rec === 'weekdays') {
+                const w = targetDate.getDay();
+                if (w >= 1 && w <= 5) result.push({...ev, originStr: dataStr});
+            } else if (rec === 'weekends') {
+                const w = targetDate.getDay();
+                if (w === 0 || w === 6) result.push({...ev, originStr: dataStr});
+            } else if (rec === 'weekly') {
+                if (targetDate.getDay() === originDate.getDay()) result.push({...ev, originStr: dataStr});
+            } else if (rec === 'biweekly') {
+                if (targetDate.getDay() === originDate.getDay()) {
+                    const diffTime = Math.abs(targetDate - originDate);
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays % 14 === 0) result.push({...ev, originStr: dataStr});
+                }
+            } else if (rec === 'monthly') {
+                if (targetDate.getDate() === originDate.getDate()) result.push({...ev, originStr: dataStr});
+            }
+        });
+    }
+    return result;
 }
 
 function renderizarProximosEventosAgenda() {
@@ -1209,25 +1291,22 @@ function renderizarProximosEventosAgenda() {
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
     
-    for (const dataStr in agendaEvents) {
-        const [ano, mes, dia] = dataStr.split('-');
-        const dataObj = new Date(ano, mes - 1, dia);
-        if (dataObj >= hoje) {
-            agendaEvents[dataStr].forEach(ev => {
-                todosEventos.push({
-                    dateObj: dataObj,
-                    dateStr: `${dia}/${mes}`,
-                    title: ev.title,
-                    time: ev.time || ''
-                });
+    // Para simplificar, vamos projetar os próximos 30 dias para pegar as recorrências futuras
+    for (let i = 0; i < 30; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + i);
+        const evs = getEventosParaData(d.getFullYear(), d.getMonth(), d.getDate());
+        evs.forEach(ev => {
+            todosEventos.push({
+                dateObj: d,
+                dateStr: `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`,
+                title: ev.title,
+                time: ev.time || ''
             });
-        }
+        });
     }
     
     todosEventos.sort((a, b) => {
-        if(a.dateObj.getTime() !== b.dateObj.getTime()) {
-            return a.dateObj.getTime() - b.dateObj.getTime();
-        }
+        if(a.dateObj.getTime() !== b.dateObj.getTime()) return a.dateObj.getTime() - b.dateObj.getTime();
         return a.time.localeCompare(b.time);
     });
     
@@ -1242,8 +1321,8 @@ function renderizarProximosEventosAgenda() {
         const div = document.createElement('div');
         div.className = 'momentary-item';
         div.style.padding = '6px 8px';
-        div.style.flexShrink = '0'; // Garante que não sejam esmagados
-        div.style.cursor = 'pointer'; // Feedback visual de clique
+        div.style.flexShrink = '0';
+        div.style.cursor = 'pointer';
         div.onclick = () => {
             const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             const ano = ev.dateObj.getFullYear();
@@ -1281,7 +1360,6 @@ function renderizarCalendario() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    // Dias vazios (mes passado)
     for (let i = 0; i < firstDay; i++) {
         const div = document.createElement('div');
         div.style = 'background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);';
@@ -1304,11 +1382,9 @@ function renderizarCalendario() {
         div.onmouseout = () => div.style.backgroundColor = bg;
         div.onclick = () => abrirDia(dateStr, d, mesesNomes[month]);
         
-        // Número do dia
         div.innerHTML = `<div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">${d}</div>`;
         
-        // Eventos
-        const evs = agendaEvents[dateStr] || [];
+        const evs = getEventosParaData(year, month, d);
         if (evs.length > 0) {
             const evContainer = document.createElement('div');
             evContainer.style = 'display: flex; flex-direction: column; gap: 2px; overflow: hidden;';
@@ -1326,7 +1402,6 @@ function renderizarCalendario() {
             }
             div.appendChild(evContainer);
         }
-        
         grid.appendChild(div);
     }
 }
@@ -1336,6 +1411,9 @@ function abrirDia(dateStr, d, mName) {
     document.getElementById('modal-agenda-titulo').innerText = `Eventos: ${d} de ${mName}`;
     document.getElementById('agenda-evento-title').value = '';
     document.getElementById('agenda-evento-time').value = '';
+    document.getElementById('agenda-evento-cat').value = '';
+    document.getElementById('agenda-evento-rec').value = 'none';
+    document.getElementById('agenda-evento-dash').checked = false;
     renderizarEventosDia();
     modalAgendaEvento.style.display = 'flex';
 }
@@ -1343,7 +1421,10 @@ function abrirDia(dateStr, d, mName) {
 function renderizarEventosDia() {
     const lista = document.getElementById('lista-eventos-dia');
     lista.innerHTML = '';
-    const evs = agendaEvents[selectedDateString] || [];
+    if (!selectedDateString) return;
+    
+    const [a, m, d] = selectedDateString.split('-');
+    const evs = getEventosParaData(parseInt(a), parseInt(m)-1, parseInt(d));
     if (evs.length === 0) {
         lista.innerHTML = '<div style="color:#aaa; text-align:center; font-size:0.9rem;">Nenhum evento neste dia.</div>';
         return;
@@ -1352,21 +1433,27 @@ function renderizarEventosDia() {
     evs.sort((a,b) => (a.time||'24:00').localeCompare(b.time||'24:00')).forEach(ev => {
         const div = document.createElement('div');
         div.style = 'background: rgba(255,255,255,0.1); margin-bottom: 5px; padding: 5px 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;';
+        
+        // Build recurrence string
+        const recMap = { 'none': '', 'daily': ' (Diário)', 'weekdays': ' (Dias Úteis)', 'weekends': ' (Fim de Sem.)', 'weekly': ' (Semanal)', 'biweekly': ' (Quinzenal)', 'monthly': ' (Mensal)' };
+        const recStr = recMap[ev.rec || 'none'] || '';
+
         div.innerHTML = `
             <div>
                 <span style="font-weight: bold; color: #2ecc71;">${ev.time ? ev.time+' - ' : ''}</span>
-                <span>${ev.title}</span>
+                <span>${ev.title}${recStr}</span>
+                ${ev.cat ? `<span style="font-size: 0.7rem; background: #e67e22; color: #000; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">${ev.cat}</span>` : ''}
             </div>
-            <button onclick="deletarEventoAgenda(${ev.id})" style="background: none; border: none; cursor: pointer;">❌</button>
+            <button onclick="deletarEventoAgenda(${ev.id}, '${ev.originStr}')" style="background: none; border: none; cursor: pointer;">❌</button>
         `;
         lista.appendChild(div);
     });
 }
 
-function deletarEventoAgenda(id) {
-    if(!selectedDateString) return;
-    agendaEvents[selectedDateString] = agendaEvents[selectedDateString].filter(x => x.id !== id);
-    if(agendaEvents[selectedDateString].length === 0) delete agendaEvents[selectedDateString];
+function deletarEventoAgenda(id, originStr) {
+    if(!originStr) return;
+    agendaEvents[originStr] = agendaEvents[originStr].filter(x => x.id !== id);
+    if(agendaEvents[originStr].length === 0) delete agendaEvents[originStr];
     salvarAgenda();
     renderizarEventosDia();
     renderizarCalendario();
@@ -1376,14 +1463,16 @@ if(document.getElementById('btn-salvar-evento')) {
     document.getElementById('btn-salvar-evento').onclick = () => {
         const title = document.getElementById('agenda-evento-title').value.trim();
         const time = document.getElementById('agenda-evento-time').value;
+        const cat = document.getElementById('agenda-evento-cat').value.trim();
+        const rec = document.getElementById('agenda-evento-rec').value;
+        const dash = document.getElementById('agenda-evento-dash').checked;
+        
         if(!title) return alert("Preencha o título do evento!");
         
         if(!agendaEvents[selectedDateString]) agendaEvents[selectedDateString] = [];
-        agendaEvents[selectedDateString].push({ id: Date.now(), title, time });
+        agendaEvents[selectedDateString].push({ id: Date.now(), title, time, cat, rec, dash });
         salvarAgenda();
         
-        document.getElementById('agenda-evento-title').value = '';
-        document.getElementById('agenda-evento-time').value = '';
         renderizarEventosDia();
         renderizarCalendario();
     };
@@ -1511,3 +1600,111 @@ if (localStorage.getItem('idle_hero_autostart') === 'true') {
     const { ipcRenderer } = require('electron');
     ipcRenderer.send('launch-idle-hero');
 }
+
+// ====== WIDGET DE MENSAGENS (WHATSAPP/DISCORD) ======
+const modalMensagens = document.getElementById('modal-mensagens');
+const btnMensagens = document.getElementById('btn-mensagens');
+const btnFecharMensagens = document.getElementById('btn-fechar-mensagens');
+const tabWhatsapp = document.getElementById('tab-whatsapp');
+const tabDiscord = document.getElementById('tab-discord');
+const viewWhatsapp = document.getElementById('whatsapp-webview');
+const viewDiscord = document.getElementById('discord-webview');
+
+if (btnMensagens) {
+    btnMensagens.onclick = () => {
+        modalMensagens.style.display = 'flex';
+    };
+}
+if (btnFecharMensagens) {
+    btnFecharMensagens.onclick = () => {
+        modalMensagens.style.display = 'none';
+    };
+}
+
+if (tabWhatsapp && tabDiscord) {
+    tabWhatsapp.onclick = () => {
+        tabWhatsapp.className = "btn-success";
+        tabWhatsapp.style.background = "#25D366";
+        tabWhatsapp.style.borderColor = "#25D366";
+        tabDiscord.className = "btn-icon";
+        tabDiscord.style.background = "#5865F2";
+        viewWhatsapp.style.display = "flex";
+        viewDiscord.style.display = "none";
+    };
+    tabDiscord.onclick = () => {
+        tabDiscord.className = "btn-success";
+        tabDiscord.style.background = "#5865F2";
+        tabDiscord.style.borderColor = "#5865F2";
+        tabWhatsapp.className = "btn-icon";
+        tabWhatsapp.style.background = "#25D366";
+        viewDiscord.style.display = "flex";
+        viewWhatsapp.style.display = "none";
+    };
+}
+
+// Lógica de Notificações
+let wppHasMsg = false;
+let discordHasMsg = false;
+
+function updateMsgBadges() {
+    const mainBadge = document.getElementById('msg-badge');
+    const wppBadge = document.getElementById('tab-whatsapp-badge');
+    const discordBadge = document.getElementById('tab-discord-badge');
+    
+    if (mainBadge) mainBadge.style.display = (wppHasMsg || discordHasMsg) ? 'block' : 'none';
+    if (wppBadge) wppBadge.style.display = wppHasMsg ? 'block' : 'none';
+    if (discordBadge) discordBadge.style.display = discordHasMsg ? 'block' : 'none';
+}
+
+if (viewWhatsapp) {
+    viewWhatsapp.addEventListener('page-title-updated', (e) => {
+        // WhatsApp mostra (1) WhatsApp na barra de título quando há notificação
+        if (e.title && e.title.match(/^\(\d+\)/)) {
+            wppHasMsg = true;
+        } else {
+            wppHasMsg = false;
+        }
+        updateMsgBadges();
+    });
+}
+
+if (viewDiscord) {
+    viewDiscord.addEventListener('page-title-updated', (e) => {
+        // Discord usa • ou (1) no título da aba
+        if (e.title && (e.title.includes('•') || e.title.match(/^\(\d+\)/) || e.title.toLowerCase().includes('nova'))) {
+            discordHasMsg = true;
+        } else {
+            discordHasMsg = false;
+        }
+        updateMsgBadges();
+    });
+}
+
+// ====== USB EJECTION ======
+const usbWidget = document.getElementById('usb-widget');
+ipcRenderer.on('usb-detected', (event, drives) => {
+    if (!drives || drives.length === 0) {
+        usbWidget.style.display = 'none';
+        usbWidget.innerHTML = '';
+        return;
+    }
+    usbWidget.style.display = 'flex';
+    usbWidget.innerHTML = '';
+    drives.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-icon';
+        btn.style = 'background: rgba(243, 156, 18, 0.3); border-color: #f39c12; color: #fff; font-size: 0.9rem; padding: 5px 10px;';
+        btn.innerHTML = `⏏️ Ejetar ${d.name} (${d.letter})`;
+        btn.onclick = async () => {
+            btn.innerHTML = '⌛ Ejetando...';
+            try {
+                await ipcRenderer.invoke('eject-usb', d.letter);
+                alert(`${d.name} (${d.letter}) ejetado com sucesso! Você já pode removê-lo.`);
+            } catch (e) {
+                alert(`Erro ao ejetar ${d.letter}: ${e.message}`);
+                btn.innerHTML = `⏏️ Ejetar ${d.name} (${d.letter})`;
+            }
+        };
+        usbWidget.appendChild(btn);
+    });
+});

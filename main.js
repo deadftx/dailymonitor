@@ -1,6 +1,12 @@
 const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const { exec } = require('child_process');
+
+// Bloqueia APIs Nativas do Chromium que causam popups indesejados (ex: Passkeys, WebAuthn, Bluetooth, USB)
+app.commandLine.appendSwitch('disable-features', 'WebBluetooth,WebAuthentication,WebUsb');
+app.commandLine.appendSwitch('disable-webusb');
+app.commandLine.appendSwitch('disable-webauthn');
 
 let mainWindow;
 let splashWindow;
@@ -142,17 +148,51 @@ function createMainWindow() {
             if(mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
         }, 1500); // Tempo rápido no splash final
     });
+    
+    // Silencia qualquer requisição de Bluetooth ou de Permissões de Dispositivos que o Discord tente fazer
+    mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
+        event.preventDefault();
+        callback(''); // Seleciona nenhum
+    });
 }
 
 app.whenReady().then(() => {
     require('electron').session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        if (permission === 'media' || permission === 'mediaKeySystem') {
+        // Auto-grant to avoid annoying popups
+        if (['media', 'mediaKeySystem', 'notifications', 'fullscreen', 'pointerLock'].includes(permission)) {
             return callback(true);
         }
         callback(false);
     });
     require('electron').session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
         return true;
+    });
+
+    app.on('web-contents-created', (event, contents) => {
+        contents.on('select-bluetooth-device', (event, deviceList, callback) => {
+            event.preventDefault();
+            callback('');
+        });
+        // Silencia pedido de acesso ao Desktop/Captura de tela
+        contents.on('desktop-capturer-get-sources', (event) => {
+            event.preventDefault();
+        });
+        
+        // Mata a API de Passkeys/WebAuthn antes da página sequer ter a chance de piscar
+        const killWebAuthn = () => {
+            contents.executeJavaScript(`
+                if (typeof window !== 'undefined') {
+                    window.PublicKeyCredential = undefined;
+                    if (navigator && navigator.credentials) {
+                        navigator.credentials.get = () => new Promise(() => {}); // Fica pendente eternamente ou falha
+                        navigator.credentials.create = () => new Promise(() => {});
+                    }
+                }
+            `).catch(() => {});
+        };
+
+        contents.on('did-start-navigation', killWebAuthn);
+        contents.on('dom-ready', killWebAuthn);
     });
 
     createPatcherWindow();
@@ -271,6 +311,37 @@ app.whenReady().then(() => {
                 mainWindow.showInactive();
             }
         }
+    });
+
+    // --- USB Ejection Logic ---
+    function checkUSB() {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        exec('powershell -Command "Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -eq 2 | Select-Object DeviceID, VolumeName | ConvertTo-Json"', (err, stdout) => {
+            if (err || !stdout.trim()) {
+                mainWindow.webContents.send('usb-detected', []);
+                return;
+            }
+            try {
+                let data = JSON.parse(stdout);
+                if (!Array.isArray(data)) data = [data];
+                const drives = data.map(d => ({ letter: d.DeviceID, name: d.VolumeName || "USB Drive" }));
+                mainWindow.webContents.send('usb-detected', drives);
+            } catch (e) {
+                mainWindow.webContents.send('usb-detected', []);
+            }
+        });
+    }
+    
+    setInterval(checkUSB, 5000);
+    
+    ipcMain.handle('eject-usb', async (event, driveLetter) => {
+        return new Promise((resolve, reject) => {
+            const psCommand = `(New-Object -comObject Shell.Application).Namespace(17).ParseName('${driveLetter}').InvokeVerb('Eject')`;
+            exec(`powershell -Command "${psCommand}"`, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
     });
 });
 
