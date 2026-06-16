@@ -5,6 +5,7 @@ const path = require('path');
 let mainWindow;
 let splashWindow;
 let patcherWindow;
+let alwaysOnEnabled = false;
 
 function createPatcherWindow() {
     patcherWindow = new BrowserWindow({
@@ -111,6 +112,30 @@ function createMainWindow() {
 
     mainWindow.loadFile('index.html');
 
+    mainWindow.on('minimize', (e) => {
+        if (alwaysOnEnabled) {
+            e.preventDefault();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.restore();
+            }
+        }
+    });
+
+    // Hack para driblar o Windows+D que joga o Desktop por cima de tudo
+    mainWindow.on('blur', () => {
+        if (alwaysOnEnabled && mainWindow && !mainWindow.isDestroyed()) {
+            // Força a janela a subir acima do Desktop, e logo em seguida
+            // remove o status de "Always on Top" para permitir que 
+            // outras janelas abram na frente dela normalmente.
+            mainWindow.setAlwaysOnTop(true, 'normal');
+            setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.setAlwaysOnTop(false);
+                }
+            }, 50);
+        }
+    });
+
     mainWindow.webContents.once('did-finish-load', () => {
         setTimeout(() => {
             if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
@@ -160,8 +185,29 @@ app.whenReady().then(() => {
         const targetDisplay = displays.find(d => d.id.toString() === displayId.toString());
 
         if (targetDisplay && mainWindow) {
-            mainWindow.setBounds(targetDisplay.bounds);
-            mainWindow.setFullScreen(fullscreen);
+            const wasFullscreen = mainWindow.isFullScreen();
+            if (wasFullscreen) {
+                mainWindow.setFullScreen(false);
+                setTimeout(() => {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.setBounds(targetDisplay.bounds);
+                        setTimeout(() => {
+                            if (mainWindow && !mainWindow.isDestroyed()) {
+                                mainWindow.setFullScreen(true);
+                            }
+                        }, 150);
+                    }
+                }, 150);
+            } else {
+                mainWindow.setBounds(targetDisplay.bounds);
+                if (fullscreen) {
+                    setTimeout(() => {
+                        if (mainWindow && !mainWindow.isDestroyed()) {
+                            mainWindow.setFullScreen(true);
+                        }
+                    }, 150);
+                }
+            }
         }
     });
 
@@ -212,6 +258,19 @@ app.whenReady().then(() => {
             openAtLogin: enable,
             path: app.getPath('exe')
         });
+    });
+
+    ipcMain.on('set-alwayson', (event, enable) => {
+        alwaysOnEnabled = enable;
+        if (mainWindow) {
+            mainWindow.setSkipTaskbar(enable);
+            mainWindow.setMinimizable(!enable);
+            if (enable) {
+                mainWindow.setAlwaysOnTop(false);
+                // Trick to force it to show up if DWM hid it
+                mainWindow.showInactive();
+            }
+        }
     });
 });
 

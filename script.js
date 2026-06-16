@@ -10,7 +10,8 @@ let configApp = {
     audioDeviceIdYt: "default",
     audioDeviceLabelYt: "",
     wallpaperPath: "",
-    wallpaperOpacity: 0.5
+    wallpaperOpacity: 0.5,
+    alwaysOn: false
 };
 
 // Nova Estrutura para os Lembretes Momentâneos (inclui dados de alarme)
@@ -28,6 +29,7 @@ async function carregarConfiguracoes() {
 
     ipcRenderer.send('set-autostart', configApp.autostart);
     ipcRenderer.send('set-fullscreen', configApp.fullscreen);
+    ipcRenderer.send('set-alwayson', configApp.alwaysOn);
 
     if (configApp.monitorId) {
         ipcRenderer.send('set-monitor', configApp.monitorId, configApp.fullscreen);
@@ -99,6 +101,7 @@ let caminhoWallpaperTemporario = configApp.wallpaperPath;
 document.getElementById('btn-configuracoes').onclick = () => {
     document.getElementById('config-autostart').checked = configApp.autostart;
     document.getElementById('config-fullscreen').checked = configApp.fullscreen !== false;
+    document.getElementById('config-alwayson').checked = configApp.alwaysOn;
     document.getElementById('config-opacidade').value = configApp.wallpaperOpacity;
     caminhoWallpaperTemporario = configApp.wallpaperPath;
     document.getElementById('nome-arquivo-escolhido').innerText = configApp.wallpaperPath || "Nenhum selecionado";
@@ -115,6 +118,7 @@ document.getElementById('btn-limpar-wp').onclick = () => {
 document.getElementById('btn-salvar-config').onclick = () => {
     configApp.autostart = document.getElementById('config-autostart').checked;
     configApp.fullscreen = document.getElementById('config-fullscreen').checked;
+    configApp.alwaysOn = document.getElementById('config-alwayson').checked;
     configApp.monitorId = document.getElementById('config-monitor').value;
     configApp.audioDeviceId = document.getElementById('config-audio').value;
     if (document.getElementById('config-audio-yt')) {
