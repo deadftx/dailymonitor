@@ -79,13 +79,21 @@ body {
 /* LOG DE COMBATE TRANSPARENTE NA IMAGEM */
 #combat-log {
     font-family: 'Roboto', sans-serif;
-    font-size: 0.8rem;
-    color: #4cd137;
+    font-size: 0.75rem;
+    color: #fff;
+    background: rgba(0,0,0,0.6);
     text-shadow: 1px 1px 2px #000;
     margin-bottom: 10px;
     z-index: 2;
-    text-align: center;
+    text-align: left;
+    padding: 5px;
+    width: 90%;
+    max-height: 80px;
+    overflow-y: auto;
+    border-radius: 4px;
 }
+#combat-log::-webkit-scrollbar { width: 4px; }
+#combat-log::-webkit-scrollbar-thumb { background: #444; }
 
 /* INFO PAINEL ESTILO PRINT */
 .info-panel {
@@ -187,3 +195,86 @@ body {
 .tavern-item:hover { border-color: #f1c40f; }
 .tavern-item-name { font-weight: bold; color: #fff; }
 .tavern-item-stats { font-size: 0.7rem; color: #888; margin-top: 3px; }
+
+/* SKILL TREE & SKILLS */
+.radial-tree-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 0 auto;
+    background: radial-gradient(circle at center, #222 0%, #0a0a0a 70%);
+    border-radius: 50%;
+    border: 3px solid #333;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+    overflow: visible;
+}
+.radial-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 50%;
+    background-image: repeating-radial-gradient(circle at center, transparent 0, transparent 40px, rgba(255,215,0,0.05) 41px, transparent 42px);
+    pointer-events: none;
+}
+.btn-tree-node {
+    position: absolute;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 2px solid #555;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transform: translate(-50%, -50%);
+    transition: 0.3s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+}
+.btn-tree-node:hover {
+    border-color: #f1c40f; box-shadow: 0 0 15px rgba(241,196,15,0.5); z-index: 10;
+}
+.btn-tree-node.unlocked {
+    border-color: #f1c40f;
+    box-shadow: 0 0 20px rgba(241,196,15,0.8);
+    background: radial-gradient(circle, #443c10 0%, #1a1a1a 80%);
+}
+.btn-tree-node.unlocked .tree-icon { filter: drop-shadow(0 0 5px gold); }
+.btn-tree-node.locked {
+    filter: grayscale(100%) brightness(30%);
+    cursor: not-allowed;
+    border-color: #111;
+}
+.tree-tooltip {
+    position: absolute;
+    top: -50px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.9); border: 1px solid #f1c40f; color: #fff;
+    padding: 5px; border-radius: 4px; font-size: 0.7rem; width: max-content;
+    pointer-events: none; opacity: 0; transition: 0.2s;
+    text-align: center; z-index: 20;
+}
+.btn-tree-node:hover .tree-tooltip { opacity: 1; top: -60px; }
+.tree-icon { font-size: 1.5rem; }
+
+/* NODE POSITIONS */
+/* Center Column */
+.node-center-top { top: 15%; left: 50%; }
+.node-center-mid { top: 50%; left: 50%; width: 56px; height: 56px; border-width: 3px; font-size:1.8rem; }
+.node-center-mid .tree-icon { font-size: 2rem; }
+.node-center-bot { top: 85%; left: 50%; }
+/* Left Side */
+.node-left-top { top: 25%; left: 18%; }
+.node-left-mid { top: 50%; left: 10%; }
+.node-left-bot { top: 75%; left: 18%; }
+/* Right Side */
+.node-right-top { top: 25%; left: 82%; }
+.node-right-mid { top: 50%; left: 90%; }
+.node-right-bot { top: 75%; left: 82%; }
+
+.btn-mmo-danger { color: #e74c3c; border-color: #e74c3c; }
+.btn-mmo-danger:hover { background: #c0392b; color: white; border-color: #c0392b; }
+
+.hero-skill-badge {
+    background: #111; border: 1px solid #333; padding: 5px; border-radius: 4px;
+    display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #666;
+    text-align: left;
+}
+.hero-skill-badge.unlocked { color: gold; border-color: gold; background: rgba(255,215,0,0.1); }
+.hero-skill-badge.unlocked .skill-icon { filter: grayscale(0%); }
+.hero-skill-badge .skill-icon { font-size: 1.2rem; filter: grayscale(100%); }

@@ -47,7 +47,18 @@
         <div class="content-area">
             <div class="grid-buttons">
                 <button id="btn-recruit" class="btn-mmo btn-mmo-gold">🍺 Taverna</button>
+                <button class="btn-mmo" onclick="abrirSkillTree()">🌳 Árvore</button>
                 <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'">⚙️ Opções</button>
+            </div>
+            
+            <!-- PAINEL DE BOSS -->
+            <div id="boss-panel" style="display:none; text-align:center; padding: 10px; background: rgba(200,0,0,0.2); border: 1px solid #e74c3c; margin-top: 10px; border-radius: 5px;">
+                <span style="color: #e74c3c; font-weight: bold; font-family:'Cinzel', serif;">⚠️ ENTRADA DO BOSS ALCANÇADA</span><br>
+                <button id="btn-fight-boss" class="btn-mmo btn-mmo-danger" style="margin-top: 5px;" onclick="enfrentarBoss()">Enfrentar Boss (Taxa: <span id="boss-cost">500</span>💰)</button>
+                <br>
+                <label style="color: #ccc; font-size: 0.8rem; margin-top: 8px; display: inline-block; cursor:pointer;">
+                    <input type="checkbox" id="chk-autoboss" onchange="toggleAutoBoss()"> Tentar Automático
+                </label>
             </div>
             
             <div style="font-size: 0.75rem; color:#888; font-weight:bold; margin-top:5px;">TEAM MEMBERS</div>
@@ -101,6 +112,13 @@
                 </div>
             </div>
             
+            <div style="margin-top: 15px; border-top: 1px solid rgba(255,215,0,0.3); padding-top: 10px;">
+                <h4 style="color: gold; text-align: center; margin: 0 0 10px 0; font-family:'Cinzel', serif;">Habilidades</h4>
+                <div id="modal-char-skills" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+            
             <button class="btn btn-mmo-close" style="margin-top: 20px; width: 100%;" onclick="closeModal()">Fechar</button>
         </div>
     </div>
@@ -140,6 +158,55 @@
             </div>
 
             <button class="btn btn-mmo" style="margin-top: 25px; width: 100%;" onclick="saveSettings()">Salvar Configurações</button>
+        </div>
+    </div>
+
+    <!-- MODAL ÁRVORE DE SKILLS GERAL -->
+    <div id="modal-skilltree" class="modal" style="display: none; z-index: 150;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 500px; padding: 20px; background: #111;">
+            <h2 style="font-family:'Cinzel', serif; color:gold; text-align:center; margin-top:0;">🌳 Árvore de Talentos</h2>
+            <div style="text-align:center; color:#ccc; font-size:0.9rem; margin-bottom:15px;">
+                Pontos de Talento: <span id="tree-points" style="font-weight:bold; color:gold; font-size:1.2rem;">0</span>
+                <div style="font-size:0.75rem; color:#888;">(1 Ponto a cada 5 Níveis Médios da Equipe)</div>
+            </div>
+            
+            <div class="radial-tree-container">
+                <div class="radial-bg"></div>
+                <!-- Center column -->
+                <button class="btn-tree-node node-center-top" id="btn-tree-2" onclick="buyTreeNode(2)">
+                    <div class="tree-icon">❤️</div><div class="tree-tooltip"><b>Vitalidade</b><br>+20% Vida Máx.</div>
+                </button>
+                <button class="btn-tree-node node-center-mid" id="btn-tree-5" onclick="buyTreeNode(5)">
+                    <div class="tree-icon">💰</div><div class="tree-tooltip"><b>Ganância</b><br>+50% Ouro</div>
+                </button>
+                <button class="btn-tree-node node-center-bot" id="btn-tree-8" onclick="buyTreeNode(8)">
+                    <div class="tree-icon">✨</div><div class="tree-tooltip"><b>Sábio</b><br>+50% XP</div>
+                </button>
+
+                <!-- Left side -->
+                <button class="btn-tree-node node-left-top" id="btn-tree-1" onclick="buyTreeNode(1)">
+                    <div class="tree-icon">💥</div><div class="tree-tooltip"><b>Fúria</b><br>+20% Dano Fís.</div>
+                </button>
+                <button class="btn-tree-node node-left-mid" id="btn-tree-4" onclick="buyTreeNode(4)">
+                    <div class="tree-icon">🎯</div><div class="tree-tooltip"><b>Foco Alvo</b><br>+30% Dano Boss</div>
+                </button>
+                <button class="btn-tree-node node-left-bot" id="btn-tree-7" onclick="buyTreeNode(7)">
+                    <div class="tree-icon">👼</div><div class="tree-tooltip"><b>Luz Guia</b><br>Cura +50%</div>
+                </button>
+
+                <!-- Right side -->
+                <button class="btn-tree-node node-right-top" id="btn-tree-3" onclick="buyTreeNode(3)">
+                    <div class="tree-icon">🛡️</div><div class="tree-tooltip"><b>Baluarte</b><br>+20% Defesa</div>
+                </button>
+                <button class="btn-tree-node node-right-mid" id="btn-tree-6" onclick="buyTreeNode(6)">
+                    <div class="tree-icon">🌊</div><div class="tree-tooltip"><b>Devastação</b><br>+30% Dano Mob</div>
+                </button>
+                <button class="btn-tree-node node-right-bot" id="btn-tree-9" onclick="buyTreeNode(9)">
+                    <div class="tree-icon">🧛</div><div class="tree-tooltip"><b>Vampirismo</b><br>10% Roubo Vida</div>
+                </button>
+            </div>
+            
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-skilltree').style.display='none'">Fechar Árvore</button>
         </div>
     </div>
 
