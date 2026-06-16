@@ -47,6 +47,8 @@
         <div class="content-area">
             <div class="grid-buttons">
                 <button id="btn-recruit" class="btn-mmo btn-mmo-gold">🍺 Taverna</button>
+                <button class="btn-mmo" onclick="abrirLoja()">🏪 Loja</button>
+                <button class="btn-mmo" onclick="abrirInventario()">🎒 Inventário</button>
                 <button class="btn-mmo" onclick="abrirSkillTree()">🌳 Árvore</button>
                 <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'">⚙️ Opções</button>
             </div>
@@ -113,6 +115,33 @@
             </div>
             
             <div style="margin-top: 15px; border-top: 1px solid rgba(255,215,0,0.3); padding-top: 10px;">
+                <h4 style="color: gold; text-align: center; margin: 0 0 5px 0; font-family:'Cinzel', serif;">Atributos de Combate</h4>
+                <div style="display: flex; justify-content: space-around; font-size: 0.85rem; color: #ccc;">
+                    <div style="text-align: center;">
+                        <span style="color: #e74c3c;">❤️ Máx HP</span><br>
+                        <b id="stat-maxhp" style="color: white; font-size: 1rem;">0</b>
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="color: #3498db;">⚔️ Dano</span><br>
+                        <b id="stat-basedmg" style="color: white; font-size: 1rem;">0</b>
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="color: #f1c40f;">🎯 Crítico</span><br>
+                        <b id="stat-crit" style="color: white; font-size: 1rem;">0%</b>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; border-top: 1px solid rgba(255,215,0,0.3); padding-top: 10px;">
+                <h4 style="color: gold; text-align: center; margin: 0 0 10px 0; font-family:'Cinzel', serif;">Equipamentos</h4>
+                <div style="display: flex; justify-content: center; gap: 20px;">
+                    <button class="eq-slot" id="eq-weapon" onclick="abrirSelecaoEquip('weapon')">🗡️</button>
+                    <button class="eq-slot" id="eq-armor" onclick="abrirSelecaoEquip('armor')">🛡️</button>
+                    <button class="eq-slot" id="eq-accessory" onclick="abrirSelecaoEquip('accessory')">💍</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; border-top: 1px solid rgba(255,215,0,0.3); padding-top: 10px;">
                 <h4 style="color: gold; text-align: center; margin: 0 0 10px 0; font-family:'Cinzel', serif;">Habilidades</h4>
                 <div id="modal-char-skills" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <!-- Preenchido via JS -->
@@ -120,6 +149,18 @@
             </div>
             
             <button class="btn btn-mmo-close" style="margin-top: 20px; width: 100%;" onclick="closeModal()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE SELEÇÃO DE EQUIPAMENTO -->
+    <div id="modal-equip-select" class="modal" style="display: none; z-index: 130;">
+        <div class="modal-content mmo-modal" style="width: 90%; max-width: 400px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:gold; text-align:center; margin-top:0;">Escolher Equipamento</h2>
+            <div id="equip-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <!-- Lista de itens equipáveis -->
+            </div>
+            <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="desequiparAtual()">Desequipar Atual</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-equip-select').style.display='none'">Cancelar</button>
         </div>
     </div>
 
@@ -132,6 +173,32 @@
                 <!-- Classes renderizadas aqui -->
             </div>
             <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="closeTavern()">Sair da Taverna</button>
+        </div>
+    </div>
+
+    <!-- MODAL DA LOJA -->
+    <div id="modal-shop" class="modal" style="display: none; z-index: 120;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 450px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:#f39c12; text-align:center; margin-top:0;">🏪 Loja de Itens</h2>
+            <div style="text-align:center; margin-bottom: 15px; color: gold; font-weight: bold;">
+                Seu Ouro: <span id="shop-gold">0</span> 💰
+            </div>
+            <div id="shop-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                <!-- Itens da Loja -->
+            </div>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-shop').style.display='none'">Sair da Loja</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE INVENTÁRIO -->
+    <div id="modal-inventory" class="modal" style="display: none; z-index: 120;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 450px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:#3498db; text-align:center; margin-top:0;">🎒 Inventário da Equipe</h2>
+            <p style="text-align:center; color:#ccc; font-size:0.8rem; margin-bottom:15px;">Equipe seus itens diretamente pelo painel (ℹ️) de cada herói.</p>
+            <div id="inventory-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                <!-- Itens do Inventário -->
+            </div>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-inventory').style.display='none'">Fechar Inventário</button>
         </div>
     </div>
 
@@ -149,7 +216,7 @@
 
                 <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
                     <input type="checkbox" id="chk-background" style="width:18px; height:18px;">
-                    <span style="font-size:1rem; color:#fff;">Rodar em Background (Bandeja)</span>
+                    <span style="font-size:1rem; color:#fff;">Ativar "Always On" (Canto da tela Win+D)</span>
                 </label>
                 <p style="font-size:0.8rem; color:#888; margin: -10px 0 0 28px;">Ao fechar no (❌), o jogo ficará invisível mas continuará batalhando.</p>
                 
@@ -204,6 +271,17 @@
                 <button class="btn-tree-node node-right-bot" id="btn-tree-9" onclick="buyTreeNode(9)">
                     <div class="tree-icon">🧛</div><div class="tree-tooltip"><b>Vampirismo</b><br>10% Roubo Vida</div>
                 </button>
+
+                <!-- Outer Layer -->
+                <button class="btn-tree-node node-outer-1" id="btn-tree-10" onclick="buyTreeNode(10)">
+                    <div class="tree-icon">⚔️</div><div class="tree-tooltip"><b>Mestre de Armas</b><br>Armas +50%</div>
+                </button>
+                <button class="btn-tree-node node-outer-2" id="btn-tree-11" onclick="buyTreeNode(11)">
+                    <div class="tree-icon">👹</div><div class="tree-tooltip"><b>Titã Imortal</b><br>Sobrevive 1x</div>
+                </button>
+                <button class="btn-tree-node node-outer-3" id="btn-tree-12" onclick="buyTreeNode(12)">
+                    <div class="tree-icon">🌌</div><div class="tree-tooltip"><b>Arquimago</b><br>20% Dobrar Magia</div>
+                </button>
             </div>
             
             <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-skilltree').style.display='none'">Fechar Árvore</button>
@@ -222,6 +300,8 @@
             </div>
         </div>
     </div>
+
+    <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; pointer-events: none;"></div>
 
     <script src="game.js"></script>
 </body>

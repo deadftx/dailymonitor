@@ -2,85 +2,158 @@ const { ipcRenderer } = require('electron');
 
 const CLASSES = [
     { name: 'Arqueiro',   stats: { str: 4, agi: 3, dex: 5, vit: 2, int: 1 }, seed: 'Archer', skills: [
-        { name: 'Tiro Rápido', icon: '🏹', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Olho de Águia', icon: '👁️', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Chuva de Flechas', icon: '🌧️', level: 9, type: 'aoe', mult: 1.2 },
-        { name: 'Flecha Venenosa', icon: '🐍', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Tiro Perfurante', icon: '🎯', level: 15, type: 'dmg', mult: 3.0 },
-        { name: 'Fúria da Natureza', icon: '🌪️', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'arq_3_1', name: 'Tiro Rápido', icon: '🏹', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'arq_3_2', name: 'Armadilha', icon: '🪤', level: 3, type: 'aoe', mult: 1.0 },
+        { id: 'arq_6_1', name: 'Olho de Águia', icon: '👁️', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'arq_6_2', name: 'Esquiva', icon: '💨', level: 6, type: 'heal', mult: 1.5 },
+        { id: 'arq_9_1', name: 'Chuva de Flechas', icon: '🌧️', level: 9, type: 'aoe', mult: 1.2 },
+        { id: 'arq_9_2', name: 'Fogo Cruzado', icon: '🔥', level: 9, type: 'dmg', mult: 2.2 },
+        { id: 'arq_12_1', name: 'Flecha Venenosa', icon: '🐍', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'arq_12_2', name: 'Flecha Gélida', icon: '❄️', level: 12, type: 'aoe', mult: 1.8 },
+        { id: 'arq_15_1', name: 'Tiro Perfurante', icon: '🎯', level: 15, type: 'dmg', mult: 3.0 },
+        { id: 'arq_15_2', name: 'Instinto', icon: '🐺', level: 15, type: 'heal', mult: 2.5 },
+        { id: 'arq_18_1', name: 'Fúria da Natureza', icon: '🌪️', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'arq_18_2', name: 'Flecha do Fim', icon: '☄️', level: 18, type: 'dmg', mult: 6.0 }
     ] },
     { name: 'Guerreiro',  stats: { str: 5, agi: 2, dex: 3, vit: 4, int: 1 }, seed: 'Warrior', skills: [
-        { name: 'Golpe Firme', icon: '🗡️', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Investida', icon: '🦬', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Grito de Guerra', icon: '🗣️', level: 9, type: 'dmg', mult: 1.5 },
-        { name: 'Corte Duplo', icon: '⚔️', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Tornado de Lâminas', icon: '🌀', level: 15, type: 'aoe', mult: 1.5 },
-        { name: 'Golpe Final', icon: '☠️', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'war_3_1', name: 'Golpe Firme', icon: '🗡️', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'war_3_2', name: 'Provocação', icon: '🛡️', level: 3, type: 'heal', mult: 1.5 },
+        { id: 'war_6_1', name: 'Investida', icon: '🦬', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'war_6_2', name: 'Pisão', icon: '👣', level: 6, type: 'aoe', mult: 1.2 },
+        { id: 'war_9_1', name: 'Grito de Guerra', icon: '🗣️', level: 9, type: 'dmg', mult: 1.5 },
+        { id: 'war_9_2', name: 'Pele de Ferro', icon: '🦾', level: 9, type: 'heal', mult: 2.0 },
+        { id: 'war_12_1', name: 'Corte Duplo', icon: '⚔️', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'war_12_2', name: 'Sangramento', icon: '🩸', level: 12, type: 'dmg', mult: 2.8 },
+        { id: 'war_15_1', name: 'Tornado de Lâminas', icon: '🌀', level: 15, type: 'aoe', mult: 1.5 },
+        { id: 'war_15_2', name: 'Fôlego', icon: '🌬️', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'war_18_1', name: 'Golpe Final', icon: '☠️', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'war_18_2', name: 'Fúria Titã', icon: '👹', level: 18, type: 'aoe', mult: 3.5 }
     ] },
     { name: 'Mago',       stats: { str: 1, agi: 4, dex: 3, vit: 2, int: 5 }, seed: 'Mage', skills: [
-        { name: 'Míssil Mágico', icon: '✨', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Bola de Fogo', icon: '🔥', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Nevasca', icon: '❄️', level: 9, type: 'aoe', mult: 1.2 },
-        { name: 'Raio Arcano', icon: '⚡', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Meteoro', icon: '☄️', level: 15, type: 'aoe', mult: 2.0 },
-        { name: 'Explosão Arcana', icon: '💥', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'mag_3_1', name: 'Míssil Mágico', icon: '✨', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'mag_3_2', name: 'Escudo Arcano', icon: '🔮', level: 3, type: 'heal', mult: 1.5 },
+        { id: 'mag_6_1', name: 'Bola de Fogo', icon: '🔥', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'mag_6_2', name: 'Eletrocutar', icon: '⚡', level: 6, type: 'dmg', mult: 2.2 },
+        { id: 'mag_9_1', name: 'Nevasca', icon: '❄️', level: 9, type: 'aoe', mult: 1.2 },
+        { id: 'mag_9_2', name: 'Prisão Gelo', icon: '🧊', level: 9, type: 'heal', mult: 2.0 },
+        { id: 'mag_12_1', name: 'Raio Arcano', icon: '⚡', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'mag_12_2', name: 'Chamas Negras', icon: '🌑', level: 12, type: 'aoe', mult: 1.8 },
+        { id: 'mag_15_1', name: 'Meteoro', icon: '☄️', level: 15, type: 'aoe', mult: 2.0 },
+        { id: 'mag_15_2', name: 'Aura Mágica', icon: '🌟', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'mag_18_1', name: 'Explosão Arcana', icon: '💥', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'mag_18_2', name: 'Singularidade', icon: '🌌', level: 18, type: 'aoe', mult: 4.0 }
     ] },
     { name: 'Assassino',  stats: { str: 3, agi: 5, dex: 4, vit: 1, int: 2 }, seed: 'Assassin', skills: [
-        { name: 'Ataque Furtivo', icon: '🥷', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Lâmina Venenosa', icon: '🧪', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Chuva de Adagas', icon: '🗡️', level: 9, type: 'aoe', mult: 1.2 },
-        { name: 'Assassinar', icon: '🩸', level: 12, type: 'dmg', mult: 3.0 },
-        { name: 'Passo das Sombras', icon: '🌑', level: 15, type: 'dmg', mult: 2.5 },
-        { name: 'Dança das Lâminas', icon: '💃', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'ass_3_1', name: 'Ataque Furtivo', icon: '🥷', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'ass_3_2', name: 'Cortina Fumaça', icon: '💨', level: 3, type: 'heal', mult: 1.5 },
+        { id: 'ass_6_1', name: 'Lâmina Venenosa', icon: '🧪', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'ass_6_2', name: 'Garganta', icon: '🗡️', level: 6, type: 'dmg', mult: 2.5 },
+        { id: 'ass_9_1', name: 'Chuva de Adagas', icon: '🗡️', level: 9, type: 'aoe', mult: 1.2 },
+        { id: 'ass_9_2', name: 'Bomba', icon: '💣', level: 9, type: 'aoe', mult: 1.5 },
+        { id: 'ass_12_1', name: 'Assassinar', icon: '🩸', level: 12, type: 'dmg', mult: 3.0 },
+        { id: 'ass_12_2', name: 'Clone', icon: '👯', level: 12, type: 'heal', mult: 2.5 },
+        { id: 'ass_15_1', name: 'Passo das Sombras', icon: '🌑', level: 15, type: 'dmg', mult: 2.5 },
+        { id: 'ass_15_2', name: 'Marca Mortal', icon: '👁️', level: 15, type: 'dmg', mult: 3.5 },
+        { id: 'ass_18_1', name: 'Dança Lâminas', icon: '💃', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'ass_18_2', name: 'Decapitar', icon: '🪓', level: 18, type: 'dmg', mult: 7.0 }
     ] },
     { name: 'Paladino',   stats: { str: 4, agi: 1, dex: 2, vit: 5, int: 3 }, seed: 'Paladin', skills: [
-        { name: 'Golpe Divino', icon: '🔨', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Luz Sagrada', icon: '✨', level: 6, type: 'heal', mult: 1.5 },
-        { name: 'Julgamento', icon: '⚖️', level: 9, type: 'dmg', mult: 2.0 },
-        { name: 'Consagração', icon: '🔥', level: 12, type: 'aoe', mult: 1.2 },
-        { name: 'Escudo Sagrado', icon: '🛡️', level: 15, type: 'heal', mult: 2.5 },
-        { name: 'Fúria dos Céus', icon: '⚡', level: 18, type: 'dmg', mult: 4.0 }
+        { id: 'pal_3_1', name: 'Golpe Divino', icon: '🔨', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'pal_3_2', name: 'Aura Defesa', icon: '🛡️', level: 3, type: 'heal', mult: 1.2 },
+        { id: 'pal_6_1', name: 'Luz Sagrada', icon: '✨', level: 6, type: 'heal', mult: 1.5 },
+        { id: 'pal_6_2', name: 'Punição', icon: '⚡', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'pal_9_1', name: 'Julgamento', icon: '⚖️', level: 9, type: 'dmg', mult: 2.0 },
+        { id: 'pal_9_2', name: 'Bênção', icon: '🕊️', level: 9, type: 'heal', mult: 2.2 },
+        { id: 'pal_12_1', name: 'Consagração', icon: '🔥', level: 12, type: 'aoe', mult: 1.2 },
+        { id: 'pal_12_2', name: 'Martelo Luz', icon: '🔨', level: 12, type: 'aoe', mult: 1.5 },
+        { id: 'pal_15_1', name: 'Escudo Sagrado', icon: '🛡️', level: 15, type: 'heal', mult: 2.5 },
+        { id: 'pal_15_2', name: 'Vingança', icon: '⚔️', level: 15, type: 'dmg', mult: 3.5 },
+        { id: 'pal_18_1', name: 'Fúria dos Céus', icon: '⚡', level: 18, type: 'dmg', mult: 4.0 },
+        { id: 'pal_18_2', name: 'Anjo Guardião', icon: '👼', level: 18, type: 'heal', mult: 5.0 }
     ] },
     { name: 'Bardo',      stats: { str: 1, agi: 3, dex: 4, vit: 2, int: 5 }, seed: 'Bard', skills: [
-        { name: 'Acorde Dissonante', icon: '🎵', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Canção de Cura', icon: '🎶', level: 6, type: 'heal', mult: 1.5 },
-        { name: 'Melodia Hipnótica', icon: '🌀', level: 9, type: 'aoe', mult: 1.0 },
-        { name: 'Solo Épico', icon: '🎸', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Hino da Batalha', icon: '🎺', level: 15, type: 'heal', mult: 2.0 },
-        { name: 'Réquiem', icon: '🪦', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'bar_3_1', name: 'Acorde Dissonante', icon: '🎵', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'bar_3_2', name: 'Nota Aguda', icon: '🎶', level: 3, type: 'dmg', mult: 1.8 },
+        { id: 'bar_6_1', name: 'Canção de Cura', icon: '🎶', level: 6, type: 'heal', mult: 1.5 },
+        { id: 'bar_6_2', name: 'Motivação', icon: '👏', level: 6, type: 'heal', mult: 1.8 },
+        { id: 'bar_9_1', name: 'Melodia Hipnótica', icon: '🌀', level: 9, type: 'aoe', mult: 1.0 },
+        { id: 'bar_9_2', name: 'Sinfonia', icon: '🎼', level: 9, type: 'aoe', mult: 1.5 },
+        { id: 'bar_12_1', name: 'Solo Épico', icon: '🎸', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'bar_12_2', name: 'Batida', icon: '🥁', level: 12, type: 'dmg', mult: 3.0 },
+        { id: 'bar_15_1', name: 'Hino Batalha', icon: '🎺', level: 15, type: 'heal', mult: 2.0 },
+        { id: 'bar_15_2', name: 'Refrão', icon: '🎤', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'bar_18_1', name: 'Réquiem', icon: '🪦', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'bar_18_2', name: 'Ópera', icon: '🎭', level: 18, type: 'aoe', mult: 4.0 }
     ] },
     { name: 'Necromante', stats: { str: 1, agi: 2, dex: 3, vit: 4, int: 5 }, seed: 'Necromancer', skills: [
-        { name: 'Toque Sombrio', icon: '🦇', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Drenar Vida', icon: '🧛', level: 6, type: 'heal', mult: 1.5 },
-        { name: 'Invocar Esqueleto', icon: '💀', level: 9, type: 'dmg', mult: 2.0 },
-        { name: 'Explosão de Ossos', icon: '💥', level: 12, type: 'aoe', mult: 1.5 },
-        { name: 'Ceifar Alma', icon: '👻', level: 15, type: 'dmg', mult: 3.0 },
-        { name: 'Exército dos Mortos', icon: '🧟', level: 18, type: 'aoe', mult: 3.0 }
+        { id: 'nec_3_1', name: 'Toque Sombrio', icon: '🦇', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'nec_3_2', name: 'Maldição', icon: '🕷️', level: 3, type: 'dmg', mult: 1.8 },
+        { id: 'nec_6_1', name: 'Drenar Vida', icon: '🧛', level: 6, type: 'heal', mult: 1.5 },
+        { id: 'nec_6_2', name: 'Pacto', icon: '📜', level: 6, type: 'heal', mult: 2.0 },
+        { id: 'nec_9_1', name: 'Invocar Esqueleto', icon: '💀', level: 9, type: 'dmg', mult: 2.0 },
+        { id: 'nec_9_2', name: 'Gargula', icon: '🗿', level: 9, type: 'dmg', mult: 2.5 },
+        { id: 'nec_12_1', name: 'Explosão Ossos', icon: '💥', level: 12, type: 'aoe', mult: 1.5 },
+        { id: 'nec_12_2', name: 'Miasma', icon: '💨', level: 12, type: 'aoe', mult: 1.8 },
+        { id: 'nec_15_1', name: 'Ceifar Alma', icon: '👻', level: 15, type: 'dmg', mult: 3.0 },
+        { id: 'nec_15_2', name: 'Prisão Almas', icon: '⛓️', level: 15, type: 'heal', mult: 2.5 },
+        { id: 'nec_18_1', name: 'Exército Mortos', icon: '🧟', level: 18, type: 'aoe', mult: 3.0 },
+        { id: 'nec_18_2', name: 'Lich Form', icon: '🧙', level: 18, type: 'dmg', mult: 6.0 }
     ] },
     { name: 'Monge',      stats: { str: 4, agi: 5, dex: 2, vit: 3, int: 1 }, seed: 'Monk', skills: [
-        { name: 'Soco Direto', icon: '👊', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Chute Voador', icon: '🦶', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Onda de Chi', icon: '🌊', level: 9, type: 'aoe', mult: 1.2 },
-        { name: 'Palma de Ferro', icon: '✋', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Mantra de Cura', icon: '🧘', level: 15, type: 'heal', mult: 2.0 },
-        { name: 'Punhos Furiosos', icon: '💢', level: 18, type: 'dmg', mult: 5.0 }
+        { id: 'mon_3_1', name: 'Soco Direto', icon: '👊', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'mon_3_2', name: 'Defesa Chi', icon: '🧘', level: 3, type: 'heal', mult: 1.5 },
+        { id: 'mon_6_1', name: 'Chute Voador', icon: '🦶', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'mon_6_2', name: 'Rasteira', icon: '🥋', level: 6, type: 'aoe', mult: 1.2 },
+        { id: 'mon_9_1', name: 'Onda Chi', icon: '🌊', level: 9, type: 'aoe', mult: 1.2 },
+        { id: 'mon_9_2', name: 'Rajada', icon: '💨', level: 9, type: 'dmg', mult: 2.5 },
+        { id: 'mon_12_1', name: 'Palma Ferro', icon: '✋', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'mon_12_2', name: 'Ponto Vital', icon: '🎯', level: 12, type: 'dmg', mult: 3.0 },
+        { id: 'mon_15_1', name: 'Mantra Cura', icon: '🧘', level: 15, type: 'heal', mult: 2.0 },
+        { id: 'mon_15_2', name: 'Meditação', icon: '🙏', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'mon_18_1', name: 'Punhos Furiosos', icon: '💢', level: 18, type: 'dmg', mult: 5.0 },
+        { id: 'mon_18_2', name: 'Avatar', icon: '🌟', level: 18, type: 'aoe', mult: 4.0 }
     ] },
     { name: 'Berserker',  stats: { str: 5, agi: 4, dex: 2, vit: 3, int: 1 }, seed: 'Berserker', skills: [
-        { name: 'Corte Brutal', icon: '🪓', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Sede de Sangue', icon: '🩸', level: 6, type: 'dmg', mult: 2.0 },
-        { name: 'Giro Mortal', icon: '🌪️', level: 9, type: 'aoe', mult: 1.5 },
-        { name: 'Investida Selvagem', icon: '🐗', level: 12, type: 'dmg', mult: 2.5 },
-        { name: 'Golpe Esmagador', icon: '🔨', level: 15, type: 'dmg', mult: 3.0 },
-        { name: 'Ira Incontrolável', icon: '😡', level: 18, type: 'dmg', mult: 6.0 }
+        { id: 'ber_3_1', name: 'Corte Brutal', icon: '🪓', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'ber_3_2', name: 'Rosnado', icon: '🐻', level: 3, type: 'heal', mult: 1.0 },
+        { id: 'ber_6_1', name: 'Sede Sangue', icon: '🩸', level: 6, type: 'dmg', mult: 2.0 },
+        { id: 'ber_6_2', name: 'Ignorar Dor', icon: '💪', level: 6, type: 'heal', mult: 2.0 },
+        { id: 'ber_9_1', name: 'Giro Mortal', icon: '🌪️', level: 9, type: 'aoe', mult: 1.5 },
+        { id: 'ber_9_2', name: 'Terremoto', icon: '🌍', level: 9, type: 'aoe', mult: 1.8 },
+        { id: 'ber_12_1', name: 'Investida Selv.', icon: '🐗', level: 12, type: 'dmg', mult: 2.5 },
+        { id: 'ber_12_2', name: 'Esmagar', icon: '💥', level: 12, type: 'dmg', mult: 3.0 },
+        { id: 'ber_15_1', name: 'Golpe Esmagador', icon: '🔨', level: 15, type: 'dmg', mult: 3.0 },
+        { id: 'ber_15_2', name: 'Raiva Infinita', icon: '🔥', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'ber_18_1', name: 'Ira Incontrol.', icon: '😡', level: 18, type: 'dmg', mult: 6.0 },
+        { id: 'ber_18_2', name: 'Aniquilação', icon: '☄️', level: 18, type: 'aoe', mult: 4.0 }
     ] },
     { name: 'Clérigo',    stats: { str: 2, agi: 1, dex: 3, vit: 5, int: 4 }, seed: 'Cleric', skills: [
-        { name: 'Punição', icon: '⚡', level: 3, type: 'dmg', mult: 1.5 },
-        { name: 'Cura Menor', icon: '🩹', level: 6, type: 'heal', mult: 2.0 },
-        { name: 'Escudo Divino', icon: '🛡️', level: 9, type: 'heal', mult: 1.5 },
-        { name: 'Fogo Purificador', icon: '🔥', level: 12, type: 'dmg', mult: 2.0 },
-        { name: 'Cura Maior', icon: '💖', level: 15, type: 'heal', mult: 3.0 },
-        { name: 'Ressurreição', icon: '👼', level: 18, type: 'heal', mult: 5.0 }
+        { id: 'cle_3_1', name: 'Punição', icon: '⚡', level: 3, type: 'dmg', mult: 1.5 },
+        { id: 'cle_3_2', name: 'Luz Ofuscante', icon: '☀️', level: 3, type: 'aoe', mult: 1.0 },
+        { id: 'cle_6_1', name: 'Cura Menor', icon: '🩹', level: 6, type: 'heal', mult: 2.0 },
+        { id: 'cle_6_2', name: 'Barreira', icon: '🛡️', level: 6, type: 'heal', mult: 1.5 },
+        { id: 'cle_9_1', name: 'Escudo Divino', icon: '🛡️', level: 9, type: 'heal', mult: 1.5 },
+        { id: 'cle_9_2', name: 'Santuário', icon: '⛪', level: 9, type: 'heal', mult: 2.5 },
+        { id: 'cle_12_1', name: 'Fogo Purificador', icon: '🔥', level: 12, type: 'dmg', mult: 2.0 },
+        { id: 'cle_12_2', name: 'Chama Sagrada', icon: '🔥', level: 12, type: 'aoe', mult: 1.8 },
+        { id: 'cle_15_1', name: 'Cura Maior', icon: '💖', level: 15, type: 'heal', mult: 3.0 },
+        { id: 'cle_15_2', name: 'Graça', icon: '🕊️', level: 15, type: 'heal', mult: 4.0 },
+        { id: 'cle_18_1', name: 'Ressurreição', icon: '👼', level: 18, type: 'heal', mult: 5.0 },
+        { id: 'cle_18_2', name: 'Julg. Final', icon: '⚖️', level: 18, type: 'dmg', mult: 5.0 }
     ] }
+];
+
+const SHOP_ITEMS = [
+    { id: 'w1', name: 'Espada de Ferro', type: 'weapon', stat: 'dmg', value: 5, price: 100, icon: '🗡️' },
+    { id: 'w2', name: 'Cajado Aprendiz', type: 'weapon', stat: 'heal', value: 5, price: 100, icon: '🪄' },
+    { id: 'a1', name: 'Armadura de Couro', type: 'armor', stat: 'hp', value: 20, price: 150, icon: '🥋' },
+    { id: 'r1', name: 'Anel do Vigia', type: 'accessory', stat: 'crit', value: 10, price: 200, icon: '💍' },
+    { id: 'w3', name: 'Lâmina Rúnica', type: 'weapon', stat: 'dmg', value: 15, price: 500, icon: '⚔️' },
+    { id: 'w4', name: 'Livro Sagrado', type: 'weapon', stat: 'heal', value: 15, price: 500, icon: '📖' },
+    { id: 'a2', name: 'Placa de Aço', type: 'armor', stat: 'hp', value: 50, price: 600, icon: '🛡️' },
+    { id: 'r2', name: 'Amuleto Rubi', type: 'accessory', stat: 'dmg', value: 10, price: 800, icon: '📿' },
+    { id: 'w5', name: 'Excalibur', type: 'weapon', stat: 'dmg', value: 50, price: 2500, icon: '🔥' },
+    { id: 'a3', name: 'Manto Celestial', type: 'armor', stat: 'hp', value: 150, price: 3000, icon: '✨' }
 ];
 
 let gameState = {
@@ -92,7 +165,8 @@ let gameState = {
     points: 0,
     autoBoss: false,
     fightingBoss: false,
-    skillTree: { pointsAvailable: 0, unlockedNodes: [] }
+    skillTree: { pointsAvailable: 0, unlockedNodes: [] },
+    inventory: []
 };
 
 let currentEnemy = null;
@@ -106,10 +180,13 @@ function carregarJogo() {
         if (gameState.autoBoss === undefined) gameState.autoBoss = false;
         if (gameState.fightingBoss === undefined) gameState.fightingBoss = false;
         if (gameState.skillTree === undefined) gameState.skillTree = { pointsAvailable: 0, unlockedNodes: [] };
+        if (gameState.inventory === undefined) gameState.inventory = [];
         
-        // Retrocompatibilidade: reconectar classData para skills funcionarem
+        // Retrocompatibilidade: reconectar classData para skills funcionarem e adicionar equipamentos/skills
         if (gameState.team && gameState.team.length > 0) {
             gameState.team.forEach(hero => {
+                if (!hero.equipment) hero.equipment = { weapon: null, armor: null, accessory: null };
+                if (!hero.learnedSkills) hero.learnedSkills = [];
                 const baseClass = CLASSES.find(c => c.name === hero.name);
                 if (baseClass) {
                     hero.classData = baseClass;
@@ -137,6 +214,9 @@ function getAvailableTreePoints() {
 
 function getMaxHp(hero) {
     let base = hero.stats.vit * 5 + (hero.level * 10);
+    if (hero.equipment && hero.equipment.armor && hero.equipment.armor.stat === 'hp') {
+        base += hero.equipment.armor.value;
+    }
     if (gameState.skillTree.unlockedNodes.includes(2)) base *= 1.2;
     return Math.floor(base);
 }
@@ -147,7 +227,7 @@ document.getElementById('btn-recruit').onclick = () => {
 
 function abrirTaverna() {
     if (gameState.team.length >= 5) {
-        alert("Sua equipe já está cheia! (Máx: 5)");
+        mostrarAviso("Sua equipe já está cheia! (Máx: 5)", "error");
         return;
     }
     const list = document.getElementById('tavern-list');
@@ -191,7 +271,9 @@ function comprarHeroi(classIndex) {
             level: 1,
             unspentPoints: 0,
             stats: { ...cls.stats },
-            hp: 0
+            hp: 0,
+            equipment: { weapon: null, armor: null, accessory: null },
+            learnedSkills: []
         };
         newHero.hp = getMaxHp(newHero);
         gameState.team.push(newHero);
@@ -239,7 +321,14 @@ function updateUI() {
                         ${hero.unspentPoints > 0 ? '✨' : 'ℹ️'}
                     </button>
                 </div>
-                <span class="char-class">STR:${hero.stats.str} AGI:${hero.stats.agi} DEX:${hero.stats.dex} VIT:${hero.stats.vit} INT:${hero.stats.int}</span>
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="char-class">STR:${hero.stats.str} AGI:${hero.stats.agi} DEX:${hero.stats.dex} VIT:${hero.stats.vit} INT:${hero.stats.int}</span>
+                    <span style="font-size: 0.7rem;">
+                        ${hero.equipment && hero.equipment.weapon ? hero.equipment.weapon.icon : ''}
+                        ${hero.equipment && hero.equipment.armor ? hero.equipment.armor.icon : ''}
+                        ${hero.equipment && hero.equipment.accessory ? hero.equipment.accessory.icon : ''}
+                    </span>
+                </div>
                 <div class="char-hp-bg"><div class="char-hp-fill" style="width: ${hpPct}%"></div></div>
             </div>
         `;
@@ -321,6 +410,7 @@ function iniciarCombate() {
         
         if (vivos === 0) {
             document.getElementById('combat-log').innerText = "Equipe aniquilada... Descansando.";
+            gameState.team.forEach(h => h.immortalUsed = false);
             updateUI();
             return;
         }
@@ -349,6 +439,19 @@ function iniciarCombate() {
 
                 let baseDmg = hero.stats.str * 2 + hero.stats.int * 2;
                 let critChance = 0.05 + (hero.stats.dex * 0.02);
+                
+                // Bônus de Equipamento
+                if (hero.equipment) {
+                    if (hero.equipment.weapon && hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value;
+                    if (hero.equipment.accessory && hero.equipment.accessory.stat === 'dmg') baseDmg += hero.equipment.accessory.value;
+                    if (hero.equipment.accessory && hero.equipment.accessory.stat === 'crit') critChance += hero.equipment.accessory.value / 100;
+                }
+                
+                // Mestre de Armas Passiva (Tier 4 Tree)
+                if (hero.equipment && hero.equipment.weapon && gameState.skillTree.unlockedNodes.includes(10)) {
+                    if (hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value * 0.5;
+                }
+
                 let isCrit = Math.random() < critChance;
                 
                 let finalHeroDmg = baseDmg;
@@ -358,7 +461,7 @@ function iniciarCombate() {
 
                 // Tenta usar uma skill
                 if (hero.gcd === 0 && hero.classData && hero.classData.skills) {
-                    let availableSkills = hero.classData.skills.filter(s => hero.level >= s.level && (!hero.cds[s.name] || hero.cds[s.name] === 0));
+                    let availableSkills = hero.classData.skills.filter(s => hero.level >= s.level && hero.learnedSkills.includes(s.id) && (!hero.cds[s.name] || hero.cds[s.name] === 0));
                     if (availableSkills.length > 0) {
                         availableSkills.sort((a,b) => b.level - a.level);
                         usedSkill = availableSkills[0];
@@ -374,12 +477,24 @@ function iniciarCombate() {
                         finalHeroDmg = baseDmg * (1 + usedSkill.mult);
                     } else if (usedSkill.type === 'heal') {
                         finalHeroHeal = usedSkill.mult * (hero.stats.int + hero.stats.vit);
+                        if (hero.equipment && hero.equipment.weapon && hero.equipment.weapon.stat === 'heal') {
+                            finalHeroHeal += hero.equipment.weapon.value;
+                            if (gameState.skillTree.unlockedNodes.includes(10)) finalHeroHeal += hero.equipment.weapon.value * 0.5;
+                        }
                         finalHeroDmg = 0; // Heal não dá dano base (simplificação)
+                    }
+                    
+                    // Arquimago Passiva (Tier 4 Tree) - 20% dobrar efeito da skill
+                    if (gameState.skillTree.unlockedNodes.includes(12) && Math.random() < 0.2) {
+                        finalHeroDmg *= 2;
+                        finalHeroHeal *= 2;
+                        attackName += " <span style='color:#9b59b6;'>[Arquimago: x2!]</span>";
                     }
                 }
                 
                 if (isCrit && finalHeroDmg > 0) {
                     finalHeroDmg *= 2;
+                    attackName += " <span style='color:#f1c40f;'>[CRÍTICO]</span>";
                 }
 
                 finalHeroDmg *= treeDmgMult;
@@ -416,7 +531,15 @@ function iniciarCombate() {
         currentEnemy.hp -= totalDamage;
         
         let logDiv = document.getElementById('combat-log');
-        logDiv.innerHTML = combatLogHtml.join('');
+        if (combatLogHtml.length > 0) {
+            logDiv.innerHTML += combatLogHtml.join('');
+        }
+        
+        // Remove excess logs to prevent infinite DOM growth
+        while (logDiv.childElementCount > 30) {
+            logDiv.removeChild(logDiv.firstElementChild);
+        }
+        
         // Auto-scroll para baixo
         logDiv.scrollTop = logDiv.scrollHeight;
         
@@ -444,7 +567,7 @@ function iniciarCombate() {
                 gameState.level++;
                 levelsGained++;
                 gameState.xp -= gameState.xpMax;
-                gameState.xpMax = Math.floor(gameState.xpMax * 1.5);
+                gameState.xpMax = Math.floor(gameState.xpMax * 1.33);
             }
             
             if (levelsGained > 0) {
@@ -481,9 +604,17 @@ function iniciarCombate() {
                 target.hp -= danoFinal;
                 
                 let msg = `${currentEnemy.name} causou ${Math.floor(danoFinal)} a ${target.name}!`;
+                
+                // Titã Imortal Passiva (Tier 4 Tree)
+                if (target.hp <= 0 && gameState.skillTree.unlockedNodes.includes(11) && !target.immortalUsed) {
+                    target.hp = 1;
+                    target.immortalUsed = true;
+                    msg += " <span style='color:#e67e22;'>[Sobreviveu com 1 HP!]</span>";
+                }
+                
                 if (isBossCrit) msg = `<span style="color:#e74c3c; font-weight:bold;">🔥 CRÍTICO DO BOSS!</span> ${msg}`;
                 
-                document.getElementById('combat-log').innerHTML += `<br>${msg}`;
+                document.getElementById('combat-log').innerHTML += `<div style="margin-bottom:2px; color:#e67e22;">${msg}</div>`;
             }
         }
         
@@ -493,7 +624,7 @@ function iniciarCombate() {
         if (vivosConfirm === 0 && currentEnemy.isBoss) {
             gameState.fightingBoss = false;
             gameState.autoBoss = false;
-            document.getElementById('combat-log').innerHTML += `<br><span style="color:red; font-weight:bold;">☠️ O Boss aniquilou a equipe...</span>`;
+            document.getElementById('combat-log').innerHTML += `<div style="color:red; font-weight:bold; margin-top:5px; text-align:center;">☠️ O Boss aniquilou a equipe...</div>`;
             gerarInimigo();
         }
         
@@ -520,26 +651,105 @@ window.abrirStatus = function(index) {
     document.getElementById('stat-vit').innerText = hero.stats.vit;
     document.getElementById('stat-int').innerText = hero.stats.int;
     
+    // Status Derivados de Combate
+    document.getElementById('stat-maxhp').innerText = getMaxHp(hero);
+    
+    let baseDmg = hero.stats.str * 2 + hero.stats.int * 2;
+    let critChance = 0.05 + (hero.stats.dex * 0.02);
+    if (hero.equipment) {
+        if (hero.equipment.weapon && hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value;
+        if (hero.equipment.accessory && hero.equipment.accessory.stat === 'dmg') baseDmg += hero.equipment.accessory.value;
+        if (hero.equipment.accessory && hero.equipment.accessory.stat === 'crit') critChance += hero.equipment.accessory.value / 100;
+        
+        if (hero.equipment.weapon && gameState.skillTree.unlockedNodes.includes(10)) {
+            if (hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value * 0.5;
+        }
+    }
+    document.getElementById('stat-basedmg').innerText = Math.floor(baseDmg);
+    document.getElementById('stat-crit').innerText = Math.floor(critChance * 100) + '%';
+    
+    // Equipamentos
+    const eqWeapon = document.getElementById('eq-weapon');
+    if (hero.equipment && hero.equipment.weapon) {
+        eqWeapon.innerHTML = hero.equipment.weapon.icon;
+        eqWeapon.title = `${hero.equipment.weapon.name} (+${hero.equipment.weapon.value} ${hero.equipment.weapon.stat.toUpperCase()})`;
+        eqWeapon.style.borderColor = '#f1c40f';
+    } else {
+        eqWeapon.innerHTML = '🗡️';
+        eqWeapon.title = 'Arma Vazia';
+        eqWeapon.style.borderColor = '#555';
+    }
+    
+    const eqArmor = document.getElementById('eq-armor');
+    if (hero.equipment && hero.equipment.armor) {
+        eqArmor.innerHTML = hero.equipment.armor.icon;
+        eqArmor.title = `${hero.equipment.armor.name} (+${hero.equipment.armor.value} ${hero.equipment.armor.stat.toUpperCase()})`;
+        eqArmor.style.borderColor = '#f1c40f';
+    } else {
+        eqArmor.innerHTML = '🛡️';
+        eqArmor.title = 'Armadura Vazia';
+        eqArmor.style.borderColor = '#555';
+    }
+    
+    const eqAcc = document.getElementById('eq-accessory');
+    if (hero.equipment && hero.equipment.accessory) {
+        eqAcc.innerHTML = hero.equipment.accessory.icon;
+        eqAcc.title = `${hero.equipment.accessory.name} (+${hero.equipment.accessory.value} ${hero.equipment.accessory.stat.toUpperCase()})`;
+        eqAcc.style.borderColor = '#f1c40f';
+    } else {
+        eqAcc.innerHTML = '💍';
+        eqAcc.title = 'Acessório Vazio';
+        eqAcc.style.borderColor = '#555';
+    }
+    
     let skillsDiv = document.getElementById('modal-char-skills');
     if (skillsDiv) {
         skillsDiv.innerHTML = '';
         if (hero.classData && hero.classData.skills) {
-            hero.classData.skills.forEach(skill => {
-                let isUnlocked = hero.level >= skill.level;
-                skillsDiv.innerHTML += `
-                    <div class="hero-skill-badge ${isUnlocked ? 'unlocked' : ''}" title="${skill.type}: +${skill.mult}">
-                        <div class="skill-icon">${skill.icon}</div>
-                        <div style="display:flex; flex-direction:column;">
-                            <span style="font-weight:bold;">${skill.name}</span>
-                            <span style="font-size:0.6rem;">Nv. ${skill.level}</span>
-                        </div>
-                    </div>
-                `;
+            let levels = [3, 6, 9, 12, 15, 18];
+            levels.forEach(lvl => {
+                let tierSkills = hero.classData.skills.filter(s => s.level === lvl);
+                if (tierSkills.length === 2) {
+                    let s1 = tierSkills[0];
+                    let s2 = tierSkills[1];
+                    let unlocked = hero.level >= lvl;
+                    let learned1 = hero.learnedSkills.includes(s1.id);
+                    let learned2 = hero.learnedSkills.includes(s2.id);
+                    let anyLearned = learned1 || learned2;
+                    
+                    let canClick = unlocked && !anyLearned;
+                    let c1 = learned1 ? 'unlocked' : (canClick ? '' : 'locked');
+                    let c2 = learned2 ? 'unlocked' : (canClick ? '' : 'locked');
+                    
+                    let html1 = `<div class="hero-skill-badge ${c1}" style="${canClick ? 'cursor:pointer; border-color:#f1c40f;' : ''}" ${canClick ? `onclick="escolherSkill('${s1.id}')"` : ''} title="${s1.type}: +${s1.mult}">
+                                    <div class="skill-icon">${s1.icon}</div>
+                                    <div style="display:flex; flex-direction:column;">
+                                        <span style="font-weight:bold;">${s1.name}</span>
+                                        <span style="font-size:0.6rem;">Nv. ${lvl}</span>
+                                    </div>
+                                 </div>`;
+                    let html2 = `<div class="hero-skill-badge ${c2}" style="${canClick ? 'cursor:pointer; border-color:#f1c40f;' : ''}" ${canClick ? `onclick="escolherSkill('${s2.id}')"` : ''} title="${s2.type}: +${s2.mult}">
+                                    <div class="skill-icon">${s2.icon}</div>
+                                    <div style="display:flex; flex-direction:column;">
+                                        <span style="font-weight:bold;">${s2.name}</span>
+                                        <span style="font-size:0.6rem;">Nv. ${lvl}</span>
+                                    </div>
+                                 </div>`;
+                    skillsDiv.innerHTML += html1 + html2;
+                }
             });
         }
     }
     
     document.getElementById('modal-status').style.display = 'flex';
+};
+
+window.escolherSkill = function(skillId) {
+    if (selectedHeroIndex === null) return;
+    const hero = gameState.team[selectedHeroIndex];
+    hero.learnedSkills.push(skillId);
+    salvarJogo();
+    abrirStatus(selectedHeroIndex);
 };
 
 window.closeModal = function() {
@@ -549,7 +759,7 @@ window.closeModal = function() {
 window.abrirSkillTree = function() {
     let pts = getAvailableTreePoints();
     document.getElementById('tree-points').innerText = pts;
-    for(let i=1; i<=9; i++) {
+    for(let i=1; i<=12; i++) {
         let btn = document.getElementById(`btn-tree-${i}`);
         if(!btn) continue;
         
@@ -563,6 +773,11 @@ window.abrirSkillTree = function() {
         if (i===6 && gameState.skillTree.unlockedNodes.includes(4)) isBlocked = true;
         if (i===7 && gameState.skillTree.unlockedNodes.includes(9)) isBlocked = true;
         if (i===9 && gameState.skillTree.unlockedNodes.includes(7)) isBlocked = true;
+        
+        // Tier 4 Requirements
+        if (i===10 && !gameState.skillTree.unlockedNodes.includes(1)) isBlocked = true;
+        if (i===11 && !gameState.skillTree.unlockedNodes.includes(2)) isBlocked = true;
+        if (i===12 && !gameState.skillTree.unlockedNodes.includes(8)) isBlocked = true;
         
         if (gameState.skillTree.unlockedNodes.includes(i)) {
             btn.classList.add('unlocked');
@@ -583,6 +798,11 @@ window.buyTreeNode = function(id) {
     if (id===7 && gameState.skillTree.unlockedNodes.includes(9)) return;
     if (id===9 && gameState.skillTree.unlockedNodes.includes(7)) return;
     
+    // Tier 4 Requirements
+    if (id===10 && !gameState.skillTree.unlockedNodes.includes(1)) return;
+    if (id===11 && !gameState.skillTree.unlockedNodes.includes(2)) return;
+    if (id===12 && !gameState.skillTree.unlockedNodes.includes(8)) return;
+    
     if (getAvailableTreePoints() > 0) {
         gameState.skillTree.unlockedNodes.push(id);
         
@@ -597,7 +817,7 @@ window.buyTreeNode = function(id) {
         updateUI();
         abrirSkillTree();
     } else {
-        alert("Sem Pontos de Talento!");
+        mostrarAviso("Sem Pontos de Talento!", "error");
     }
 };
 
@@ -610,7 +830,7 @@ window.enfrentarBoss = function() {
         salvarJogo();
         gerarInimigo();
     } else {
-        alert("Ouro insuficiente para enfrentar o boss!");
+        mostrarAviso("Ouro insuficiente para enfrentar o boss!", "error");
     }
 };
 
@@ -662,10 +882,182 @@ window.confirmarReset = function() {
         localStorage.removeItem('idle_hero_save');
         location.reload(); // Recarrega a janela do jogo para começar limpo
     } else {
-        alert("Palavra incorreta. O progresso NÃO foi apagado.");
+        mostrarAviso("Palavra incorreta. O progresso NÃO foi apagado.", "error");
         document.getElementById('modal-reset').style.display = 'none';
         document.getElementById('input-reset').value = '';
     }
 };
 
+// ================= LOJA E INVENTÁRIO =================
+window.abrirLoja = function() {
+    document.getElementById('shop-gold').innerText = gameState.gold;
+    const list = document.getElementById('shop-list');
+    list.innerHTML = '';
+    
+    SHOP_ITEMS.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'tavern-item';
+        div.onclick = () => comprarItem(item.id);
+        div.innerHTML = `
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div style="font-size:2rem; background:#333; border:1px solid #b8860b; border-radius:4px; padding:5px;">${item.icon}</div>
+                <div>
+                    <div class="tavern-item-name">${item.name}</div>
+                    <div class="tavern-item-stats">+${item.value} ${item.stat.toUpperCase()}</div>
+                </div>
+            </div>
+            <div style="color:gold; font-size:0.9rem; font-weight:bold;">${item.price} 💰</div>
+        `;
+        list.appendChild(div);
+    });
+    
+    document.getElementById('modal-shop').style.display = 'flex';
+};
+
+window.comprarItem = function(itemId) {
+    const item = SHOP_ITEMS.find(i => i.id === itemId);
+    if (gameState.gold >= item.price) {
+        gameState.gold -= item.price;
+        gameState.inventory.push({ ...item, uid: Date.now() + Math.random() });
+        document.getElementById('shop-gold').innerText = gameState.gold;
+        salvarJogo();
+        updateUI();
+        mostrarAviso(`Você comprou: ${item.name}! Acesse pelo Inventário.`, "success");
+    } else {
+        mostrarAviso("Ouro insuficiente!", "error");
+    }
+};
+
+window.abrirInventario = function() {
+    renderInventory();
+    document.getElementById('modal-inventory').style.display = 'flex';
+};
+
+function renderInventory() {
+    const list = document.getElementById('inventory-list');
+    list.innerHTML = '';
+    
+    if (gameState.inventory.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Seu inventário está vazio.</div>';
+        return;
+    }
+    
+    gameState.inventory.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'tavern-item';
+        div.style.cursor = 'default';
+        div.innerHTML = `
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div style="font-size:1.5rem; background:#333; border:1px solid #7f8c8d; border-radius:4px; padding:2px 5px;">${item.icon}</div>
+                <div>
+                    <div class="tavern-item-name" style="font-size:0.9rem;">${item.name}</div>
+                    <div class="tavern-item-stats" style="color:#2ecc71;">+${item.value} ${item.stat.toUpperCase()}</div>
+                </div>
+            </div>
+            <div style="color:#ccc; font-size:0.7rem; font-style:italic;">Não Equipado</div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+let currentEquipSlot = null;
+
+window.abrirSelecaoEquip = function(slot) {
+    if (selectedHeroIndex === null) return;
+    currentEquipSlot = slot;
+    const hero = gameState.team[selectedHeroIndex];
+    
+    const list = document.getElementById('equip-list');
+    list.innerHTML = '';
+    
+    const availableItems = gameState.inventory.filter(i => i.type === slot);
+    
+    if (availableItems.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nenhum item do tipo disponível.</div>';
+    } else {
+        availableItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'tavern-item';
+            div.onclick = () => equiparItem(item.uid);
+            div.innerHTML = `
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="font-size:1.5rem; background:#333; border:1px solid #7f8c8d; border-radius:4px; padding:2px 5px;">${item.icon}</div>
+                    <div>
+                        <div class="tavern-item-name" style="font-size:0.9rem;">${item.name}</div>
+                        <div class="tavern-item-stats" style="color:#2ecc71;">+${item.value} ${item.stat.toUpperCase()}</div>
+                    </div>
+                </div>
+                <button class="btn-success" style="font-size:0.7rem; padding:5px;">Equipar</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+    
+    document.getElementById('modal-equip-select').style.display = 'flex';
+};
+
+window.equiparItem = function(uid) {
+    if (selectedHeroIndex === null || !currentEquipSlot) return;
+    const hero = gameState.team[selectedHeroIndex];
+    
+    // Desequipa o atual se existir
+    desequiparAtual(false);
+    
+    const itemIndex = gameState.inventory.findIndex(i => i.uid === uid);
+    if (itemIndex > -1) {
+        const itemToEquip = gameState.inventory.splice(itemIndex, 1)[0];
+        hero.equipment[currentEquipSlot] = itemToEquip;
+        
+        // Recalcula HP caso tenha equipado armadura
+        if (currentEquipSlot === 'armor') hero.hp = getMaxHp(hero);
+        
+        salvarJogo();
+        updateUI();
+        document.getElementById('modal-equip-select').style.display = 'none';
+        abrirStatus(selectedHeroIndex);
+    }
+};
+
+window.desequiparAtual = function(closeModal = true) {
+    if (selectedHeroIndex === null || !currentEquipSlot) return;
+    const hero = gameState.team[selectedHeroIndex];
+    
+    if (hero.equipment[currentEquipSlot]) {
+        gameState.inventory.push(hero.equipment[currentEquipSlot]);
+        hero.equipment[currentEquipSlot] = null;
+        
+        // Recalcula HP
+        if (currentEquipSlot === 'armor') {
+            const max = getMaxHp(hero);
+            if (hero.hp > max) hero.hp = max;
+        }
+        
+        salvarJogo();
+        updateUI();
+        if (closeModal) {
+            document.getElementById('modal-equip-select').style.display = 'none';
+            abrirStatus(selectedHeroIndex);
+        }
+    } else if (closeModal) {
+        document.getElementById('modal-equip-select').style.display = 'none';
+    }
+};
+
 carregarJogo();
+
+window.mostrarAviso = function(msg, tipo = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `mmo-toast ${tipo}`;
+    toast.innerText = msg;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 3000);
+};

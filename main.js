@@ -138,45 +138,7 @@ function createMainWindow() {
 
     mainWindow = new BrowserWindow(windowOptions);
 
-    if (userConfig.wallpaperMode) {
-        // Modo Wallpaper Verdadeiro via PowerShell
-        mainWindow.webContents.once('did-finish-load', () => {
-            const hwndBuf = mainWindow.getNativeWindowHandle();
-            const hwnd = hwndBuf.readInt32LE(0);
-            const psScript = `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class Win32 {
-    [DllImport("user32.dll")] public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
-    [DllImport("user32.dll")] public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-    [DllImport("user32.dll")] public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
-    [DllImport("user32.dll")] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
-}
-"@
-[IntPtr]$progman = [Win32]::FindWindow("Progman", $null)
-[IntPtr]$result = [IntPtr]::Zero
-[Win32]::SendMessageTimeout($progman, 0x052C, [IntPtr]::Zero, [IntPtr]::Zero, 0, 1000, [ref]$result)
-$workerW = [IntPtr]::Zero
-do {
-    $workerW = [Win32]::FindWindowEx([IntPtr]::Zero, $workerW, "WorkerW", $null)
-    if ($workerW -ne [IntPtr]::Zero) {
-        $defView = [Win32]::FindWindowEx($workerW, [IntPtr]::Zero, "SHELLDLL_DefView", $null)
-        if ($defView -ne [IntPtr]::Zero) {
-            $targetWorkerW = [Win32]::FindWindowEx([IntPtr]::Zero, $workerW, "WorkerW", $null)
-            if ($targetWorkerW -ne [IntPtr]::Zero) {
-                [Win32]::SetParent([IntPtr]${hwnd}, $targetWorkerW)
-                break
-            }
-        }
-    }
-} while ($workerW -ne [IntPtr]::Zero)
-`;
-            exec(`powershell -NoProfile -Command "${psScript.replace(/\n/g, '; ')}"`, (err) => {
-                if (err) console.error("Falha ao injetar Wallpaper Mode:", err);
-            });
-        });
-    }
+
 
     mainWindow.loadFile('index.html');
 
