@@ -2,7 +2,21 @@ const { app, BrowserWindow, ipcMain, screen, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
+
+// 1. Validação na hora de abrir: Matar processos fantasmas anteriores (se for o build de prod)
+if (process.platform === 'win32' && app.isPackaged) {
+    try {
+        execSync(`taskkill /F /FI "PID ne ${process.pid}" /IM DailyMonitorLauncher.exe /T`, { stdio: 'ignore' });
+    } catch (e) {}
+}
+
+// Bloqueio de Múltiplas Instâncias
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.quit();
+    process.exit(0);
+}
 
 const configPath = path.join(app.getPath('userData'), 'config.json');
 
@@ -141,6 +155,11 @@ function createMainWindow() {
 
 
     mainWindow.loadFile('index.html');
+
+    // 2. Validação ao fechar: Se a janela principal for destruída, encerra a aplicação
+    mainWindow.on('closed', () => {
+        app.quit();
+    });
 
     mainWindow.on('minimize', (e) => {
         if (alwaysOnEnabled) {
@@ -381,10 +400,13 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    app.quit();
 });
 
 app.on('before-quit', () => {
-    exec('taskkill /F /IM DailyMonitorLauncher.exe /T', () => {});
-    exec('taskkill /F /IM electron.exe /T', () => {});
+    // 3. Validação Extrema ao fechar: aniquila toda a árvore de processos atual
+    if (process.platform === 'win32') {
+        try { execSync(`taskkill /F /PID ${process.pid} /T`, { stdio: 'ignore' }); } catch (e) {}
+        try { execSync(`taskkill /F /IM DailyMonitorLauncher.exe /T`, { stdio: 'ignore' }); } catch (e) {}
+    }
 });

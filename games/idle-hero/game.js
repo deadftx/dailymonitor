@@ -192,6 +192,16 @@ function carregarJogo() {
         if (gameState.fightingBoss === undefined) gameState.fightingBoss = false;
         if (gameState.skillTree === undefined) gameState.skillTree = { pointsAvailable: 0, unlockedNodes: [] };
         if (gameState.inventory === undefined) gameState.inventory = [];
+        if (gameState.shopEconomy === undefined) gameState.shopEconomy = { weapon: 1.0, armor: 1.0, accessory: 1.0 };
+        if (gameState.tactics === undefined) gameState.tactics = [];
+        if (gameState.nodes === undefined) {
+            gameState.nodes = {
+                'mina_ferro': { name: 'Mina de Ferro', owned: false, yield: 2, invasion: false, price: 1000 },
+                'floresta': { name: 'Floresta Élfica', owned: false, yield: 5, invasion: false, price: 5000 },
+                'caverna': { name: 'Caverna do Dragão', owned: false, yield: 25, invasion: false, price: 30000 }
+            };
+        }
+        if (gameState.defendingNode === undefined) gameState.defendingNode = null;
         
         // Retrocompatibilidade: reconectar classData para skills funcionarem e adicionar equipamentos/skills
         if (gameState.team && gameState.team.length > 0) {
@@ -299,7 +309,35 @@ function comprarHeroi(classIndex) {
     }
 }
 
+function checkSynergies() {
+    let syns = [];
+    let classes = gameState.team.map(h => h.name);
+    
+    if (classes.includes('Necromante') && classes.includes('Bardo')) {
+        syns.push({ id: 'dancaMorte', name: 'Dança da Morte', icon: '💀🎵', desc: 'Dano do Necromante cura 10% da equipe em área.' });
+    }
+    if (classes.includes('Paladino') && classes.includes('Guerreiro') && classes.includes('Berserker')) {
+        syns.push({ id: 'linhaFrente', name: 'Linha de Frente', icon: '🛡️⚔️', desc: 'Equipe toma -30% Dano. Berserker ganha Dano Bônus ao apanhar.' });
+    }
+    if (classes.includes('Assassino') && classes.includes('Arqueiro')) {
+        syns.push({ id: 'sombrasGemeas', name: 'Sombras Gêmeas', icon: '🌑🏹', desc: '+10% Acerto Crítico Global.' });
+    }
+    if (classes.includes('Mago') && classes.includes('Clérigo')) {
+        syns.push({ id: 'menteBrilhante', name: 'Mente Brilhante', icon: '🔮⛪', desc: '+20% Poder Mágico (Base Dmg Mágico x1.2).' });
+    }
+    return syns;
+}
+
 function updateUI() {
+    const synContainer = document.getElementById('synergy-container');
+    if (synContainer) {
+        synContainer.innerHTML = '';
+        const activeSyns = checkSynergies();
+        activeSyns.forEach(syn => {
+            synContainer.innerHTML += `<div style="background:rgba(0,0,0,0.6); border:1px solid #9b59b6; padding:2px 5px; border-radius:4px; font-size:0.8rem; cursor:help;" title="${syn.name}: ${syn.desc}">${syn.icon}</div>`;
+        });
+    }
+
     document.getElementById('team-gold').innerText = gameState.gold;
     document.getElementById('team-xp').innerText = gameState.xp;
     document.getElementById('team-xp-max').innerText = gameState.xpMax;
@@ -355,7 +393,15 @@ function gerarInimigo() {
     let actualLevelForEnemy = gameState.level;
 
     let bossPanel = document.getElementById('boss-panel');
-    if (bossPanel) {
+    
+    if (gameState.defendingNode) {
+        isBoss = true;
+        let node = gameState.nodes[gameState.defendingNode];
+        if (node.defenses === undefined) node.defenses = 0;
+        let diffMultiplier = Math.pow(2, node.defenses);
+        actualLevelForEnemy = Math.max(1, gameState.level * diffMultiplier);
+        if (bossPanel) bossPanel.style.display = 'none';
+    } else if (bossPanel) {
         if (gameState.level > 0 && gameState.level % 50 === 0) {
             if (gameState.fightingBoss || gameState.autoBoss) {
                 isBoss = true;
@@ -430,8 +476,36 @@ function iniciarCombate() {
         if (vivos === 0) {
             document.getElementById('combat-log').innerText = "Equipe aniquilada... Descansando.";
             gameState.team.forEach(h => h.immortalUsed = false);
+            
+            if (gameState.defendingNode) {
+                gameState.nodes[gameState.defendingNode].owned = false;
+                gameState.nodes[gameState.defendingNode].invasion = false;
+                mostrarAviso(`Sua equipe falhou em defender ${gameState.nodes[gameState.defendingNode].name} e o nodo foi perdido!`, "error");
+                gameState.defendingNode = null;
+            }
+            
             updateUI();
             return;
+        }
+
+        // Tick dos Nodos (Farm Passivo)
+        let goldGained = 0;
+        for (let key in gameState.nodes) {
+            let node = gameState.nodes[key];
+            if (node.owned) {
+                if (!node.invasion) {
+                    goldGained += node.yield;
+                    // 1% chance de invasão a cada turno
+                    if (Math.random() < 0.01) {
+                        node.invasion = true;
+                        mostrarAviso(`⚠️ URGENTE: O nodo ${node.name} está sob ataque! Defenda-o no Mapa!`, "error");
+                    }
+                }
+            }
+        }
+        if (goldGained > 0) {
+            gameState.gold += goldGained;
+            document.getElementById('team-gold').innerText = gameState.gold;
         }
 
         // Ataque dos Heróis
@@ -447,6 +521,9 @@ function iniciarCombate() {
 
         let treeCritMult = gameState.skillTree.unlockedNodes.includes(15) ? 3 : 2; // Exterminador
 
+        let activeSyns = checkSynergies().map(s => s.id);
+        if (gameState.berserkerRage === undefined) gameState.berserkerRage = 0;
+
         gameState.team.forEach(hero => {
             if(hero.hp > 0 && currentEnemy.hp - totalDamage > 0) {
                 // Initialize cooldowns if not present
@@ -461,6 +538,9 @@ function iniciarCombate() {
 
                 let baseDmg = hero.stats.str * 2 + hero.stats.int * 2;
                 let critChance = 0.05 + (hero.stats.dex * 0.02);
+                
+                if (activeSyns.includes('sombrasGemeas')) critChance += 0.10;
+                if (activeSyns.includes('menteBrilhante') && hero.stats.int > hero.stats.str) baseDmg *= 1.2;
                 
                 // Bônus de Equipamento
                 if (hero.equipment) {
@@ -481,11 +561,40 @@ function iniciarCombate() {
                 let attackName = "Ataque Básico";
                 let usedSkill = null;
 
+                // Evaluate Tactics (Caller System)
+                let forcedAction = null;
+                
+                for (let tactic of gameState.tactics) {
+                    let conditionMet = false;
+                    
+                    if (tactic.condition === 'hp_critical') {
+                        conditionMet = gameState.team.some(h => h.hp > 0 && h.hp < getMaxHp(h) * 0.3);
+                    } else if (tactic.condition === 'boss_fight') {
+                        conditionMet = currentEnemy.isBoss;
+                    } else if (tactic.condition === 'enemy_full') {
+                        conditionMet = currentEnemy.hp / currentEnemy.maxHp > 0.9;
+                    }
+                    
+                    if (conditionMet) {
+                        forcedAction = tactic.action;
+                        break; // Stop at first met rule (highest priority)
+                    }
+                }
+                
                 // Tenta usar uma skill
-                if (hero.gcd === 0 && hero.classData && hero.classData.skills) {
+                if (hero.gcd === 0 && hero.classData && hero.classData.skills && forcedAction !== 'save_skills') {
                     let availableSkills = hero.classData.skills.filter(s => hero.level >= s.level && hero.learnedSkills.includes(s.id) && (!hero.cds[s.name] || hero.cds[s.name] === 0));
+                    
+                    if (forcedAction === 'focus_heal') {
+                        let healSkills = availableSkills.filter(s => s.type === 'heal');
+                        if (healSkills.length > 0) availableSkills = healSkills;
+                    } else if (forcedAction === 'focus_dmg') {
+                        let dmgSkills = availableSkills.filter(s => s.type === 'dmg');
+                        if (dmgSkills.length > 0) availableSkills = dmgSkills;
+                    }
+
                     if (availableSkills.length > 0) {
-                        availableSkills.sort((a,b) => b.level - a.level);
+                        availableSkills.sort((a,b) => b.level - a.level); // Prioriza as de nivel mais alto
                         usedSkill = availableSkills[0];
                     }
                 }
@@ -522,6 +631,20 @@ function iniciarCombate() {
                 finalHeroDmg *= treeDmgMult;
                 if (currentEnemy.isBoss) finalHeroDmg *= treeBossDmgMult;
                 else finalHeroDmg *= treeMobDmgMult;
+                
+                if (hero.name === 'Berserker' && activeSyns.includes('linhaFrente') && finalHeroDmg > 0) {
+                    finalHeroDmg += gameState.berserkerRage;
+                    if (gameState.berserkerRage > 0) attackName += " <span style='color:#e74c3c;'>[Raiva]</span>";
+                    gameState.berserkerRage = 0;
+                }
+
+                if (hero.name === 'Necromante' && activeSyns.includes('dancaMorte') && finalHeroDmg > 0) {
+                    let dancaHeal = finalHeroDmg * 0.10;
+                    gameState.team.forEach(h => {
+                        if (h.hp > 0) h.hp = Math.min(getMaxHp(h), h.hp + dancaHeal);
+                    });
+                    attackName += " <span style='color:#9b59b6;'>[Sinfonia Sombria]</span>";
+                }
                 
                 totalDamage += finalHeroDmg;
                 if (finalHeroHeal > 0) {
@@ -581,6 +704,17 @@ function iniciarCombate() {
             if (currentEnemy.isBoss) {
                 gameState.fightingBoss = false;
                 gameState.level++;
+                
+                if (gameState.defendingNode) {
+                    gameState.level--; // Defesa de nodo não dá level global
+                    let node = gameState.nodes[gameState.defendingNode];
+                    node.invasion = false;
+                    if (node.defenses === undefined) node.defenses = 0;
+                    node.defenses++;
+                    
+                    mostrarAviso(`Invasão repelida! ${node.name} defesas: ${node.defenses}.`, "success");
+                    gameState.defendingNode = null;
+                }
             }
             
             // Check level up global
@@ -622,8 +756,18 @@ function iniciarCombate() {
 
                 let treeDefMult = gameState.skillTree.unlockedNodes.includes(3) ? 1.2 : 1.0;
                 let def = target.stats.vit * 1 * treeDefMult;
-                let danoFinal = Math.max(1, enemyDmg - def);
+                let danoBruto = enemyDmg - def;
+                
+                if (activeSyns.includes('linhaFrente')) {
+                    danoBruto *= 0.70; // 30% redução
+                }
+                
+                let danoFinal = Math.max(1, danoBruto);
                 target.hp -= danoFinal;
+                
+                if (activeSyns.includes('linhaFrente')) {
+                    gameState.berserkerRage += danoFinal * 0.50; // Converte dano em raiva
+                }
                 
                 let msg = `${currentEnemy.name} causou ${Math.floor(danoFinal)} a ${target.name}!`;
                 
@@ -646,6 +790,14 @@ function iniciarCombate() {
         if (vivosConfirm === 0 && currentEnemy.isBoss) {
             gameState.fightingBoss = false;
             gameState.autoBoss = false;
+            
+            if (gameState.defendingNode) {
+                gameState.nodes[gameState.defendingNode].owned = false;
+                gameState.nodes[gameState.defendingNode].invasion = false;
+                mostrarAviso(`Sua equipe falhou em defender o nodo contra o Boss!`, "error");
+                gameState.defendingNode = null;
+            }
+            
             document.getElementById('combat-log').innerHTML += `<div style="color:red; font-weight:bold; margin-top:5px; text-align:center;">☠️ O Boss aniquilou a equipe...</div>`;
             gerarInimigo();
         }
@@ -776,6 +928,27 @@ window.escolherSkill = function(skillId) {
 
 window.closeModal = function() {
     document.getElementById('modal-status').style.display = 'none';
+};
+
+window.aposentarHeroi = function() {
+    if (selectedHeroIndex === null) return;
+    const hero = gameState.team[selectedHeroIndex];
+    const valorResgate = hero.level * 50;
+    
+    if (confirm(`Tem certeza que deseja aposentar ${hero.name}? Você receberá ${valorResgate} 💰, mas perderá o herói para sempre.`)) {
+        // Desequipa itens
+        if (hero.weapon) gameState.inventory.push(hero.weapon);
+        if (hero.armor) gameState.inventory.push(hero.armor);
+        if (hero.accessory) gameState.inventory.push(hero.accessory);
+        
+        gameState.gold += valorResgate;
+        gameState.team.splice(selectedHeroIndex, 1);
+        selectedHeroIndex = null;
+        
+        salvarJogo();
+        updateUI();
+        closeModal();
+    }
 };
 
 window.abrirSkillTree = function() {
@@ -927,6 +1100,14 @@ window.abrirLoja = function() {
     list.innerHTML = '';
     
     SHOP_ITEMS.forEach(item => {
+        let currentMult = gameState.shopEconomy[item.type] || 1.0;
+        let adjustedPrice = Math.max(1, Math.floor(item.price * currentMult));
+        
+        let indicator = '';
+        if (currentMult > 1.05) indicator = '<span style="color:#e74c3c;" title="Em Alta">📈</span>';
+        else if (currentMult < 0.95) indicator = '<span style="color:#2ecc71;" title="Em Baixa">📉</span>';
+        else indicator = '<span style="color:#f1c40f;" title="Estável">➖</span>';
+
         const div = document.createElement('div');
         div.className = 'tavern-item';
         div.onclick = () => comprarItem(item.id);
@@ -938,7 +1119,7 @@ window.abrirLoja = function() {
                     <div class="tavern-item-stats">+${item.value} ${item.stat.toUpperCase()}</div>
                 </div>
             </div>
-            <div style="color:gold; font-size:0.9rem; font-weight:bold;">${item.price} 💰</div>
+            <div style="color:gold; font-size:0.9rem; font-weight:bold;">${adjustedPrice} 💰 ${indicator}</div>
         `;
         list.appendChild(div);
     });
@@ -948,13 +1129,26 @@ window.abrirLoja = function() {
 
 window.comprarItem = function(itemId) {
     const item = SHOP_ITEMS.find(i => i.id === itemId);
-    if (gameState.gold >= item.price) {
-        gameState.gold -= item.price;
+    let currentMult = gameState.shopEconomy[item.type] || 1.0;
+    let adjustedPrice = Math.max(1, Math.floor(item.price * currentMult));
+
+    if (gameState.gold >= adjustedPrice) {
+        gameState.gold -= adjustedPrice;
         gameState.inventory.push({ ...item, uid: Date.now() + Math.random() });
+        
+        // Flutuação de Economia: Sobe 10% na categoria comprada, desce 5% nas outras
+        gameState.shopEconomy[item.type] = (gameState.shopEconomy[item.type] || 1.0) * 1.10;
+        ['weapon', 'armor', 'accessory'].forEach(tipo => {
+            if (tipo !== item.type) {
+                gameState.shopEconomy[tipo] = Math.max(0.2, (gameState.shopEconomy[tipo] || 1.0) * 0.95);
+            }
+        });
+        
         document.getElementById('shop-gold').innerText = gameState.gold;
         salvarJogo();
         updateUI();
-        mostrarAviso(`Você comprou: ${item.name}! Acesse pelo Inventário.`, "success");
+        abrirLoja(); // Atualiza a tela da loja com os novos preços
+        mostrarAviso(`Você comprou: ${item.name}! O mercado flutuou.`, "success");
     } else {
         mostrarAviso("Ouro insuficiente!", "error");
     }
@@ -1105,3 +1299,141 @@ window.toggleLog = function() {
         btn.innerHTML = '👁️ Mostrar Log';
     }
 };
+
+// ================= TÁTICAS (CALLER) =================
+window.abrirTaticas = function() {
+    renderTactics();
+    document.getElementById('modal-tactics').style.display = 'flex';
+};
+
+window.addTactic = function() {
+    const condition = document.getElementById('tactic-condition').value;
+    const action = document.getElementById('tactic-action').value;
+    
+    gameState.tactics.push({ id: Date.now(), condition, action });
+    salvarJogo();
+    renderTactics();
+};
+
+window.removeTactic = function(id) {
+    gameState.tactics = gameState.tactics.filter(t => t.id !== id);
+    salvarJogo();
+    renderTactics();
+};
+
+function renderTactics() {
+    const list = document.getElementById('tactics-list');
+    list.innerHTML = '';
+    
+    const conditionNames = {
+        'hp_critical': 'Se HP Aliado < 30%',
+        'boss_fight': 'Se Boss Ativo',
+        'enemy_full': 'Se Inimigo Full HP'
+    };
+    const actionNames = {
+        'focus_heal': 'Forçar Cura',
+        'focus_dmg': 'Forçar Dano',
+        'save_skills': 'Poupe Skills'
+    };
+    
+    if (gameState.tactics.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:#888; padding:10px;">Nenhuma regra definida. A equipe agirá por instinto.</div>';
+    } else {
+        gameState.tactics.forEach((t, i) => {
+            list.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:8px; border-radius:4px; border-left:3px solid #9b59b6;">
+                    <div>
+                        <span style="font-weight:bold; color:#f1c40f;">#${i+1}</span>
+                        <span style="color:#fff; margin-left:5px;">[${conditionNames[t.condition]}]</span> ➜ <span style="color:#2ecc71;">[${actionNames[t.action]}]</span>
+                    </div>
+                    <button class="btn-danger" style="padding:2px 8px;" onclick="removeTactic(${t.id})">X</button>
+                </div>
+            `;
+        });
+    }
+}
+
+// ================= MAPA (NODOS) =================
+window.abrirMapa = function() {
+    renderNodes();
+    document.getElementById('modal-map').style.display = 'flex';
+};
+
+window.comprarNodo = function(id) {
+    const node = gameState.nodes[id];
+    if (gameState.gold >= node.price && !node.owned) {
+        gameState.gold -= node.price;
+        node.owned = true;
+        salvarJogo();
+        updateUI();
+        renderNodes();
+        mostrarAviso(`Você reivindicou ${node.name}! Geração passiva iniciada.`, "success");
+    } else {
+        mostrarAviso("Ouro insuficiente para conquistar este nodo.", "error");
+    }
+};
+
+window.defenderNodo = function(id) {
+    const node = gameState.nodes[id];
+    if (node.invasion) {
+        document.getElementById('modal-map').style.display = 'none';
+        gameState.defendingNode = id;
+        gameState.fightingBoss = true; // Força uma luta de boss
+        document.getElementById('boss-panel').style.display = 'none';
+        
+        if (combatInterval) clearInterval(combatInterval);
+        
+        salvarJogo();
+        gerarInimigo();
+        mostrarAviso(`Prepare-se para defender ${node.name} contra o invasor!`, "error");
+        
+        iniciarCombate();
+    }
+};
+
+function renderNodes() {
+    const list = document.getElementById('nodes-list');
+    list.innerHTML = '';
+    
+    const icones = {
+        'mina_ferro': '⛏️',
+        'floresta': '🌲',
+        'caverna': '🦇'
+    };
+    
+    for (let key in gameState.nodes) {
+        const n = gameState.nodes[key];
+        const icon = icones[key] || '🗺️';
+        
+        let acaoHTML = '';
+        let statusColor = '#333';
+        let borderColor = '#111';
+        
+        if (n.owned) {
+            if (n.invasion) {
+                statusColor = 'rgba(231, 76, 60, 0.2)';
+                borderColor = '#e74c3c';
+                acaoHTML = `<button class="btn-danger" style="font-size:0.8rem; padding:5px; border-radius:3px; box-shadow: 0 0 10px red;" onclick="defenderNodo('${key}')">⚔️ Defender!</button>`;
+            } else {
+                statusColor = 'rgba(46, 204, 113, 0.1)';
+                borderColor = '#2ecc71';
+                acaoHTML = `<span style="color:#2ecc71; font-weight:bold; font-size:0.8rem;">✔️ Dominado</span>`;
+            }
+        } else {
+            acaoHTML = `<button class="btn-mmo" style="font-size:0.8rem; padding:5px; border-radius:3px;" onclick="comprarNodo('${key}')">Reivindicar (${n.price}💰)</button>`;
+        }
+        
+        list.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:${statusColor}; padding:10px; border-radius:4px; border:1px solid ${borderColor}; margin-bottom:5px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="font-size:1.5rem; background:#111; border:1px solid ${borderColor}; border-radius:4px; padding:2px 5px;">${icon}</div>
+                    <div>
+                        <div style="font-weight:bold; color:#fff; font-size:0.9rem;">${n.name}</div>
+                        <div style="color:gold; font-size:0.75rem;">Gera +${n.yield} 💰 / turno</div>
+                    </div>
+                </div>
+                <div>${acaoHTML}</div>
+            </div>
+        `;
+    }
+}

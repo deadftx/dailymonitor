@@ -21,6 +21,7 @@
         <!-- ÁREA DE COMBATE COM IMAGEM -->
         <div class="combat-area">
             <button id="btn-toggle-log" onclick="toggleLog()" style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #555; padding:4px 8px; cursor:pointer; font-size:0.75rem; border-radius:3px; z-index:10; transition:0.2s;" onmouseover="this.style.borderColor='#f1c40f'" onmouseout="this.style.borderColor='#555'">👁️ Ocultar Log</button>
+            <div id="synergy-container" style="position:absolute; top:5px; right:5px; display:flex; gap:5px; z-index:10;"></div>
             <div id="combat-log">Aventureiros descansando...</div>
             <div class="enemy-display" id="enemy-display" style="display: none;">
                 <img id="enemy-img" src="" alt="Enemy">
@@ -51,7 +52,9 @@
                 <button class="btn-mmo" onclick="abrirLoja()">🏪 Loja</button>
                 <button class="btn-mmo" onclick="abrirInventario()">🎒 Inventário</button>
                 <button class="btn-mmo" onclick="abrirSkillTree()">🌳 Árvore</button>
-                <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'">⚙️ Opções</button>
+                <button class="btn-mmo" onclick="abrirTaticas()">🧠 Táticas</button>
+                <button class="btn-mmo" onclick="abrirMapa()">🗺️ Mapa</button>
+                <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'" style="grid-column: span 2;">⚙️ Opções</button>
             </div>
             
             <!-- PAINEL DE BOSS -->
@@ -149,7 +152,8 @@
                 </div>
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 20px; width: 100%;" onclick="closeModal()">Fechar</button>
+            <button class="btn btn-danger" style="margin-top: 15px; width: 100%; font-weight:bold; background: rgba(231, 76, 60, 0.8); border: 1px solid #e74c3c;" onclick="aposentarHeroi()">💀 Aposentar Herói</button>
+            <button class="btn btn-mmo-close" style="margin-top: 10px; width: 100%;" onclick="closeModal()">Fechar</button>
         </div>
     </div>
 
@@ -226,6 +230,50 @@
             </div>
 
             <button class="btn btn-mmo" style="margin-top: 25px; width: 100%;" onclick="saveSettings()">Salvar Configurações</button>
+            <button class="btn btn-mmo-close" style="margin-top: 10px; width: 100%;" onclick="document.getElementById('modal-settings').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE TÁTICAS (CALLER) -->
+    <div id="modal-tactics" class="modal" style="display: none; z-index: 125;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 500px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:#9b59b6; text-align:center; margin-top:0;">🧠 Macro-Táticas</h2>
+            <p style="text-align:center; color:#ccc; font-size:0.8rem; margin-bottom:15px;">Defina regras lógicas para automatizar o comportamento da sua equipe.</p>
+            
+            <div style="display:flex; gap:5px; margin-bottom: 15px;">
+                <select id="tactic-condition" style="flex:1; background:#222; color:white; border:1px solid #555; padding:5px; border-radius:3px;">
+                    <option value="hp_critical">Se HP Aliado < 30%</option>
+                    <option value="boss_fight">Se Boss Ativo</option>
+                    <option value="enemy_full">Se Inimigo Full HP</option>
+                </select>
+                <span style="color:white; align-self:center;">➜</span>
+                <select id="tactic-action" style="flex:1; background:#222; color:white; border:1px solid #555; padding:5px; border-radius:3px;">
+                    <option value="focus_heal">Forçar Cura</option>
+                    <option value="focus_dmg">Forçar Dano</option>
+                    <option value="save_skills">Poupe Skills (Só Ataque Básico)</option>
+                </select>
+                <button class="btn-mmo" style="padding: 5px 10px;" onclick="addTactic()">Add</button>
+            </div>
+            
+            <div id="tactics-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 5px; background: rgba(0,0,0,0.3); border:1px solid #333; border-radius:4px; padding:5px;">
+                <!-- Lista de regras -->
+            </div>
+            
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-tactics').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DO MAPA (NODOS) -->
+    <div id="modal-map" class="modal" style="display: none; z-index: 125;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 500px; padding: 20px;">
+            <h2 style="font-family:'Cinzel', serif; color:#2ecc71; text-align:center; margin-top:0;">🗺️ Mapa do Mundo</h2>
+            <p style="text-align:center; color:#ccc; font-size:0.8rem; margin-bottom:15px;">Conquiste nodos para gerar ouro passivamente.</p>
+            
+            <div id="nodes-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                <!-- Lista de nodos -->
+            </div>
+            
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-map').style.display='none'">Fechar Mapa</button>
         </div>
     </div>
 
