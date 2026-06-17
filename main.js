@@ -4,12 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
 
-// 1. Validação na hora de abrir: Matar processos fantasmas anteriores (se for o build de prod)
-if (process.platform === 'win32' && app.isPackaged) {
-    try {
-        execSync(`taskkill /F /FI "PID ne ${process.pid}" /IM DailyMonitorLauncher.exe /T`, { stdio: 'ignore' });
-    } catch (e) {}
-}
+// 1. Validação de instância nativa (taskkill removido pois matava os child processes do Electron)
+
 
 // Bloqueio de Múltiplas Instâncias
 const gotTheLock = app.requestSingleInstanceLock();
