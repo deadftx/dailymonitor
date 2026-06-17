@@ -1,4 +1,5 @@
 const { ipcRenderer } = require('electron');
+ipcRenderer.invoke('hard-reset-bounds');
 
 const CLASSES = [
     { name: 'Arqueiro',   stats: { str: 4, agi: 3, dex: 5, vit: 2, int: 1 }, seed: 'Archer', skills: [
@@ -320,7 +321,7 @@ document.getElementById('btn-recruit').onclick = () => {
     abrirTaverna();
 };
 
-function abrirTaverna() {
+function renderTavern() {
     if (gameState.team.length >= 5) {
         mostrarAviso("Sua equipe já está cheia! (Máx: 5)", "error");
         return;
@@ -346,12 +347,11 @@ function abrirTaverna() {
         `;
         list.appendChild(div);
     });
-    
-    document.getElementById('modal-tavern').style.display = 'flex';
 }
 
-window.closeTavern = function() {
-    document.getElementById('modal-tavern').style.display = 'none';
+window.abrirTaverna = function() {
+    renderTavern();
+    abrirPainelExterno('modal-tavern', 350, 450);
 };
 
 function comprarHeroi(classIndex) {
@@ -1151,7 +1151,7 @@ window.abrirStatus = function(index) {
         }
     }
     
-    document.getElementById('modal-status').style.display = 'flex';
+    abrirPainelExterno('modal-status', 350, 500);
 };
 
 window.escolherSkill = function(skillId) {
@@ -1223,7 +1223,7 @@ window.abrirEvolucao = function(index) {
         `;
     });
     
-    document.getElementById('modal-evolution').style.display = 'flex';
+    abrirPainelExterno('modal-evolution', 350, 500);
 };
 
 window.confirmarEvolucao = function(pathKey, cost) {
@@ -1307,7 +1307,7 @@ window.abrirSkillTree = function() {
             btn.classList.add('locked');
         }
     }
-    document.getElementById('modal-skilltree').style.display = 'flex';
+    abrirPainelExterno('modal-skilltree', 450, 600);
 };
 
 window.buyTreeNode = function(id) {
@@ -1394,7 +1394,7 @@ document.getElementById('btn-close').onclick = () => {
 document.getElementById('btn-settings').onclick = () => {
     document.getElementById('chk-autostart').checked = localStorage.getItem('idle_hero_autostart') === 'true';
     document.getElementById('chk-background').checked = localStorage.getItem('idle_hero_background') === 'true';
-    document.getElementById('modal-settings').style.display = 'flex';
+    abrirPainelExterno('modal-settings', 350, 500);
 };
 
 window.saveSettings = function() {
@@ -1446,7 +1446,7 @@ window.abrirLoja = function() {
         list.appendChild(div);
     });
     
-    document.getElementById('modal-shop').style.display = 'flex';
+    abrirPainelExterno('modal-shop', 350, 500);
 };
 
 window.comprarItem = function(itemId) {
@@ -1478,7 +1478,7 @@ window.comprarItem = function(itemId) {
 
 window.abrirInventario = function() {
     renderInventory();
-    document.getElementById('modal-inventory').style.display = 'flex';
+    abrirPainelExterno('modal-inventory', 350, 500);
 };
 
 function renderInventory() {
@@ -1541,7 +1541,7 @@ window.abrirSelecaoEquip = function(slot) {
         });
     }
     
-    document.getElementById('modal-equip-select').style.display = 'flex';
+    abrirPainelExterno('modal-equip-select', 350, 500);
 };
 
 window.equiparItem = function(uid) {
@@ -1629,7 +1629,7 @@ window.toggleLog = function() {
 // ================= TÁTICAS (CALLER) =================
 window.abrirTaticas = function() {
     renderTactics();
-    document.getElementById('modal-tactics').style.display = 'flex';
+    abrirPainelExterno('modal-tactics', 350, 500);
 };
 
 window.addTactic = function() {
@@ -1682,7 +1682,7 @@ function renderTactics() {
 // ================= MAPA (NODOS) =================
 window.abrirMapa = function() {
     renderNodes();
-    document.getElementById('modal-map').style.display = 'flex';
+    abrirPainelExterno('modal-map', 400, 500);
 };
 
 window.comprarNodo = function(id) {
@@ -1802,7 +1802,7 @@ window.abrirConstrucoes = function(id) {
         `;
     }
     
-    document.getElementById('modal-node-buildings').style.display = 'flex';
+    abrirPainelExterno('modal-node-buildings', 400, 500);
 };
 
 window.comprarConstrucao = function(nodeId, type, price) {
@@ -1846,3 +1846,70 @@ window.executarComando = function() {
         mostrarAviso("Código inválido.", "error");
     }
 };
+
+let activeSideModal = null;
+let gameOffsetX = 0;
+let gameOffsetY = 0;
+
+window.fecharSideModal = function() {
+    if (activeSideModal) {
+        document.body.appendChild(document.getElementById(activeSideModal));
+        document.getElementById(activeSideModal).style.display = 'none';
+        document.getElementById(activeSideModal).style.position = 'fixed';
+        activeSideModal = null;
+        document.getElementById('side-modal-container').style.display = 'none';
+        
+        const gameContainer = document.getElementById('base-game-container');
+        gameContainer.style.left = '0px';
+        gameContainer.style.top = '0px';
+        
+        ipcRenderer.invoke('reset-modal-space');
+    }
+}
+
+window.abrirPainelExterno = async function(modalId, width, height) {
+    if (activeSideModal === modalId) return;
+
+    if (activeSideModal) {
+        document.body.appendChild(document.getElementById(activeSideModal));
+        document.getElementById(activeSideModal).style.display = 'none';
+        document.getElementById(activeSideModal).style.position = 'fixed';
+    }
+
+    activeSideModal = modalId;
+
+    const bounds = await ipcRenderer.invoke('request-modal-space', { width, height });
+    
+    const gameContainer = document.getElementById('base-game-container');
+    gameContainer.style.left = bounds.gameRect.x + 'px';
+    gameContainer.style.top = bounds.gameRect.y + 'px';
+    gameOffsetX = bounds.gameRect.x;
+    gameOffsetY = bounds.gameRect.y;
+
+    const sideContainer = document.getElementById('side-modal-container');
+    sideContainer.style.display = 'block';
+    sideContainer.style.width = bounds.modalRect.w + 'px';
+    sideContainer.style.height = bounds.modalRect.h + 'px';
+    sideContainer.style.left = bounds.modalRect.x + 'px';
+    sideContainer.style.top = bounds.modalRect.y + 'px';
+
+    const content = document.getElementById('side-modal-content');
+    content.innerHTML = '';
+    const modalEl = document.getElementById(modalId);
+    content.appendChild(modalEl);
+    
+    modalEl.style.display = 'flex';
+    modalEl.style.position = 'relative';
+    modalEl.style.background = 'transparent';
+    modalEl.style.width = '100%';
+    modalEl.style.height = '100%';
+    
+    const innerContent = modalEl.querySelector('.mmo-modal');
+    if (innerContent) {
+        innerContent.style.maxWidth = '100%';
+        innerContent.style.width = '100%';
+        innerContent.style.border = 'none';
+        innerContent.style.background = 'transparent';
+        innerContent.style.padding = '0';
+    }
+}

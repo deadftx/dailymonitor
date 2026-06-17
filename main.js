@@ -347,6 +347,87 @@ app.whenReady().then(() => {
         if (idleHeroWindow) idleHeroWindow.close();
     });
 
+    let originalGameBounds = null;
+
+    ipcMain.handle('request-modal-space', (event, { width, height }) => {
+        if (!idleHeroWindow) return null;
+        
+        // Store original bounds if we haven't already
+        if (!originalGameBounds) {
+            originalGameBounds = idleHeroWindow.getBounds();
+        }
+        
+        const bounds = originalGameBounds;
+        const display = screen.getDisplayMatching(bounds);
+        const workArea = display.workArea;
+
+        const spaceUp = bounds.y - workArea.y;
+        const spaceDown = (workArea.y + workArea.height) - (bounds.y + bounds.height);
+        const spaceLeft = bounds.x - workArea.x;
+        const spaceRight = (workArea.x + workArea.width) - (bounds.x + bounds.width);
+
+        let dir = 'up';
+        if (spaceUp >= height) dir = 'up';
+        else if (spaceLeft >= width) dir = 'left';
+        else if (spaceRight >= width) dir = 'right';
+        else if (spaceDown >= height) dir = 'down';
+        else {
+            const maxSpace = Math.max(spaceUp, spaceLeft, spaceRight, spaceDown);
+            if (maxSpace === spaceUp) dir = 'up';
+            else if (maxSpace === spaceLeft) dir = 'left';
+            else if (maxSpace === spaceRight) dir = 'right';
+            else dir = 'down';
+        }
+
+        let newBounds = { x: bounds.x, y: bounds.y, width: 330, height: 600 };
+        let gameRect = { x: 0, y: 0, w: 330, h: 600 };
+        let modalRect = { x: 0, y: 0, w: width, h: height };
+
+        if (dir === 'up') {
+            newBounds.y = bounds.y - height;
+            newBounds.height = 600 + height;
+            gameRect.y = height;
+        } else if (dir === 'left') {
+            newBounds.x = bounds.x - width;
+            newBounds.width = 330 + width;
+            gameRect.x = width;
+        } else if (dir === 'right') {
+            newBounds.width = 330 + width;
+            modalRect.x = 330;
+        } else if (dir === 'down') {
+            newBounds.height = 600 + height;
+            modalRect.y = 600;
+        }
+
+        idleHeroWindow.setBounds(newBounds);
+        return { direction: dir, gameRect, modalRect };
+    });
+
+    ipcMain.handle('reset-modal-space', (event) => {
+        if (!idleHeroWindow) return;
+        if (originalGameBounds) {
+            idleHeroWindow.setBounds({
+                x: originalGameBounds.x,
+                y: originalGameBounds.y,
+                width: 330,
+                height: 600
+            });
+            originalGameBounds = null;
+        }
+    });
+
+    ipcMain.handle('hard-reset-bounds', (event) => {
+        if (!idleHeroWindow) return;
+        const currentBounds = idleHeroWindow.getBounds();
+        // Assume the game is at top-left? Not necessarily, but we can just force 330x600
+        idleHeroWindow.setBounds({
+            x: currentBounds.x,
+            y: currentBounds.y,
+            width: 330,
+            height: 600
+        });
+    });
+
     ipcMain.on('set-autostart', (event, enable) => {
         app.setLoginItemSettings({
             openAtLogin: enable,

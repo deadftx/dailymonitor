@@ -4,7 +4,7 @@ import path from 'path';
 const TOKEN = process.env.GH_TOKEN;
 const OWNER = 'deadftx';
 const REPO = 'dailymonitor';
-const TAG = 'v2.0.1';
+const TAG = 'v2.1.0';
 
 async function request(method, url, body, isUpload = false) {
     const headers = {

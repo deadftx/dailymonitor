@@ -6,8 +6,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div id="drag-bar">
+<body style="background: transparent; overflow: hidden; margin: 0; padding: 0;">
+    <div id="base-game-container" style="position: absolute; width: 330px; height: 600px; background: #111; overflow: hidden; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.8);">
+        <div id="drag-bar">
         <div style="display:flex; align-items:center; gap:8px;">
             <span>⚔️</span> <span style="font-family:'Cinzel', serif; font-weight:bold; letter-spacing:1px;">Idle Hero</span>
         </div>
@@ -54,7 +55,7 @@
                 <button class="btn-mmo" onclick="abrirSkillTree()">🌳 Árvore</button>
                 <button class="btn-mmo" onclick="abrirTaticas()">🧠 Táticas</button>
                 <button class="btn-mmo" onclick="abrirMapa()">🗺️ Mapa</button>
-                <button class="btn-mmo" onclick="document.getElementById('modal-settings').style.display='flex'" style="grid-column: span 2;">⚙️ Opções</button>
+                <button class="btn-mmo" onclick="abrirPainelExterno('modal-settings', 350, 500)" style="grid-column: span 2;">⚙️ Opções</button>
             </div>
             
             <!-- PAINEL DE BOSS -->
@@ -167,7 +168,7 @@
                 <!-- Preenchido via JS -->
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-evolution').style.display='none'">Decidir Depois</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Decidir Depois</button>
         </div>
     </div>
 
@@ -179,7 +180,7 @@
                 <!-- Lista de itens equipáveis -->
             </div>
             <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="desequiparAtual()">Desequipar Atual</button>
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-equip-select').style.display='none'">Cancelar</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Cancelar</button>
         </div>
     </div>
 
@@ -205,7 +206,7 @@
             <div id="shop-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
                 <!-- Itens da Loja -->
             </div>
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-shop').style.display='none'">Sair da Loja</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Sair da Loja</button>
         </div>
     </div>
 
@@ -217,7 +218,7 @@
             <div id="inventory-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
                 <!-- Itens do Inventário -->
             </div>
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-inventory').style.display='none'">Fechar Inventário</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Fechar Inventário</button>
         </div>
     </div>
 
@@ -247,11 +248,11 @@
                 </div>
                 
                 <hr style="border-color: #333; margin: 10px 0;">
-                <button class="btn btn-mmo-close" style="width: 100%;" onclick="document.getElementById('modal-reset').style.display='flex'">⚠️ Resetar Progresso do Jogo</button>
+                <button class="btn btn-mmo-close" style="width: 100%;" onclick="abrirPainelExterno('modal-reset', 350, 400)">⚠️ Resetar Progresso do Jogo</button>
             </div>
 
             <button class="btn btn-mmo" style="margin-top: 25px; width: 100%;" onclick="saveSettings()">Salvar Configurações</button>
-            <button class="btn btn-mmo-close" style="margin-top: 10px; width: 100%;" onclick="document.getElementById('modal-settings').style.display='none'">Fechar</button>
+            <button class="btn btn-mmo-close" style="margin-top: 10px; width: 100%;" onclick="fecharSideModal()">Fechar</button>
         </div>
     </div>
 
@@ -280,7 +281,7 @@
                 <!-- Lista de regras -->
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-tactics').style.display='none'">Fechar</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Fechar</button>
         </div>
     </div>
 
@@ -294,7 +295,7 @@
                 <!-- Lista de nodos -->
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-map').style.display='none'">Fechar Mapa</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Fechar Mapa</button>
         </div>
     </div>
 
@@ -308,7 +309,7 @@
                 <!-- Preenchido via JS -->
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-node-buildings').style.display='none'">Voltar</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Voltar</button>
         </div>
     </div>
 
@@ -377,7 +378,7 @@
                 </button>
             </div>
             
-            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-skilltree').style.display='none'">Fechar Árvore</button>
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="fecharSideModal()">Fechar Árvore</button>
         </div>
     </div>
 
@@ -388,9 +389,19 @@
             <p style="color:#ccc; font-size:0.9rem;">Para resetar todo o progresso e voltar ao level 1 com 300💰, digite <b>CERTEZA</b> abaixo:</p>
             <input type="text" id="input-reset" placeholder="Digite CERTEZA..." style="width:100%; padding:10px; margin-bottom:15px; background:#222; border:1px solid #e74c3c; color:white; text-align:center; font-weight:bold;">
             <div style="display:flex; gap:10px;">
-                <button class="btn btn-mmo" style="flex:1;" onclick="document.getElementById('modal-reset').style.display='none'">Cancelar</button>
+                <button class="btn btn-mmo" style="flex:1;" onclick="fecharSideModal()">Cancelar</button>
                 <button class="btn btn-mmo-close" style="flex:1;" onclick="confirmarReset()">Apagar</button>
             </div>
+        </div>
+    </div>
+
+    </div> <!-- FIM BASE GAME CONTAINER -->
+
+    <!-- CONTAINER DO MODAL LATERAL -->
+    <div id="side-modal-container" style="display: none; position: absolute; background: #1a1a1a; border: 1px solid #333; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.9); overflow-y: auto; padding: 15px;">
+        <button id="btn-close-side-modal" onclick="fecharSideModal()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #aaa; z-index: 9999;">❌</button>
+        <div id="side-modal-content" style="margin-top: 30px; width: 100%; height: calc(100% - 30px);">
+            <!-- O modal selecionado será injetado aqui -->
         </div>
     </div>
 
