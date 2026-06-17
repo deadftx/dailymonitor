@@ -157,6 +157,20 @@
         </div>
     </div>
 
+    <!-- MODAL DE EVOLUÇÃO -->
+    <div id="modal-evolution" class="modal" style="display: none; z-index: 140;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 500px; padding: 20px;">
+            <h2 id="modal-evo-title" style="font-family:'Cinzel', serif; color:gold; text-align:center; margin-top:0;">Evolução de Classe</h2>
+            <p id="modal-evo-desc" style="text-align:center; color:#ccc; font-size:0.9rem; margin-bottom:15px;">Escolha o caminho para o seu herói.</p>
+            
+            <div id="evo-options" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Preenchido via JS -->
+            </div>
+            
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-evolution').style.display='none'">Decidir Depois</button>
+        </div>
+    </div>
+
     <!-- MODAL DE SELEÇÃO DE EQUIPAMENTO -->
     <div id="modal-equip-select" class="modal" style="display: none; z-index: 130;">
         <div class="modal-content mmo-modal" style="width: 90%; max-width: 400px; padding: 20px;">
@@ -224,6 +238,13 @@
                     <span style="font-size:1rem; color:#fff;">Ativar "Always On" (Canto da tela Win+D)</span>
                 </label>
                 <p style="font-size:0.8rem; color:#888; margin: -10px 0 0 28px;">Ao fechar no (❌), o jogo ficará invisível mas continuará batalhando.</p>
+                
+                <hr style="border-color: #333; margin: 10px 0;">
+                
+                <div style="display:flex; gap: 5px;">
+                    <input type="text" id="cheat-code" placeholder="Código de Comando" style="flex:1; background:#222; border:1px solid #555; color:white; padding:5px; border-radius:3px; font-family:monospace;">
+                    <button class="btn-mmo" style="padding: 5px 10px;" onclick="executarComando()">Executar</button>
+                </div>
                 
                 <hr style="border-color: #333; margin: 10px 0;">
                 <button class="btn btn-mmo-close" style="width: 100%;" onclick="document.getElementById('modal-reset').style.display='flex'">⚠️ Resetar Progresso do Jogo</button>

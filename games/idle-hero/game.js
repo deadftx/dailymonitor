@@ -170,6 +170,49 @@ const SHOP_ITEMS = [
     { id: 'a3_2', name: 'Armadura Divina', type: 'armor', stat: 'hp', value: 300, price: 12000, icon: '🌟' }
 ];
 
+const EVOLUTIONS = {
+    'Guerreiro': {
+        opt1: { id: 'Muralha', name: 'Muralha (Tank)', desc: '+Vida/Def, -Dano Fís.', mults: { hp: 1.5, def: 1.5, dmg: 0.7 } },
+        opt2: { id: 'Mestre Armas', name: 'Mestre Armas (DPS)', desc: '+Dano/Crit, -Vida/Def', mults: { dmg: 1.5, crit: 1.5, hp: 0.7, def: 0.7 } }
+    },
+    'Arqueiro': {
+        opt1: { id: 'Sniper', name: 'Sniper (Preciso)', desc: '+Dano/Precisão, -Vida/Esq', mults: { dmg: 1.5, prec: 1.5, hp: 0.7, esq: 0.7 } },
+        opt2: { id: 'Caçador', name: 'Caçador (Sobrev.)', desc: '+Vida/Esquiva, -Dano/Crit', mults: { hp: 1.5, esq: 1.5, dmg: 0.7, crit: 0.7 } }
+    },
+    'Mago': {
+        opt1: { id: 'Arquimago', name: 'Arquimago (Poder)', desc: '+Dano Mag/Crit, -Vida/Esq', mults: { dmgMag: 1.5, critMag: 1.5, hp: 0.7, esq: 0.7 } },
+        opt2: { id: 'Ilusionista', name: 'Ilusionista (Defesa)', desc: '+Esquiva/Def, -Dano Mag', mults: { esq: 1.5, def: 1.5, dmgMag: 0.7 } }
+    },
+    'Assassino': {
+        opt1: { id: 'Sombrio', name: 'Lâmina Sombria (DPS)', desc: '+Dano Crit/Precisão, -Vida', mults: { dmgCrit: 1.5, prec: 1.5, hp: 0.6 } },
+        opt2: { id: 'Ninja', name: 'Ninja (Evasão)', desc: '+Esquiva/Esquiva Crit, -Dano', mults: { esq: 1.6, esqCrit: 1.5, dmg: 0.7 } }
+    },
+    'Paladino': {
+        opt1: { id: 'Templário', name: 'Templário (Tank/Cura)', desc: '+Defesa/Cura, -Dano', mults: { def: 1.5, heal: 1.3, dmg: 0.7 } },
+        opt2: { id: 'Inquisidor', name: 'Inquisidor (Bruiser)', desc: '+Dano/Precisão, -Cura', mults: { dmg: 1.5, prec: 1.3, heal: 0.7 } }
+    },
+    'Bardo': {
+        opt1: { id: 'Menestrel', name: 'Menestrel (Suporte)', desc: '+Cura/Esquiva, -Dano Mag', mults: { heal: 1.5, esq: 1.3, dmgMag: 0.6 } },
+        opt2: { id: 'Skald', name: 'Skald (Ofensivo)', desc: '+Dano Mag/Precisão, -Cura', mults: { dmgMag: 1.5, prec: 1.3, heal: 0.6 } }
+    },
+    'Necromante': {
+        opt1: { id: 'Lich', name: 'Lich (Magia/Vida)', desc: '+Dano Mag/Cura(Roubo), -Vit', mults: { dmgMag: 1.5, heal: 1.5, hp: 0.6 } },
+        opt2: { id: 'Cavaleiro Morte', name: 'Cav. Morte (Tank Mag)', desc: '+Vida/Defesa, -Dano Mag', mults: { hp: 1.5, def: 1.5, dmgMag: 0.7 } }
+    },
+    'Monge': {
+        opt1: { id: 'Avatar', name: 'Avatar (DPS Fís)', desc: '+Dano/Esquiva, -Vida/Cura', mults: { dmg: 1.5, esq: 1.3, hp: 0.7, heal: 0.7 } },
+        opt2: { id: 'Mestre Zen', name: 'Mestre Zen (Sustento)', desc: '+Cura/Vida Máx, -Dano', mults: { heal: 1.5, hp: 1.3, dmg: 0.7 } }
+    },
+    'Berserker': {
+        opt1: { id: 'Sanguinário', name: 'Sanguinário (Dano)', desc: '+Dano/Crit, -Def/Esq', mults: { dmg: 1.6, crit: 1.5, def: 0.5, esq: 0.5 } },
+        opt2: { id: 'Juggernaut', name: 'Juggernaut (Colosso)', desc: '+Vida Massiva/Def, -Dano', mults: { hp: 1.8, def: 1.5, dmg: 0.6 } }
+    },
+    'Clérigo': {
+        opt1: { id: 'Sumo Sacerdote', name: 'Sumo Sacerdote (Healer)', desc: '+Cura Pura/Vida, -Dano Mag', mults: { heal: 1.8, hp: 1.3, dmgMag: 0.5 } },
+        opt2: { id: 'Profeta', name: 'Profeta (DPS Mag)', desc: '+Dano Mag/Crit Mag, -Cura', mults: { dmgMag: 1.6, critMag: 1.5, heal: 0.5 } }
+    }
+};
+
 let gameState = {
     gold: 300,
     team: [],
@@ -216,9 +259,14 @@ function carregarJogo() {
             gameState.team.forEach(hero => {
                 if (!hero.equipment) hero.equipment = { weapon: null, armor: null, accessory: null };
                 if (!hero.learnedSkills) hero.learnedSkills = [];
-                const baseClass = CLASSES.find(c => c.name === hero.name);
+                if (!hero.evolution) hero.evolution = { path: null, tier: 0 };
+                // A classe base deve ser sempre resolvida pelo nome base caso tenha evoluído
+                // Se a baseClass não bater pelo hero.name direto, procuramos o baseName ou mantemos o fallback
+                const baseName = hero.baseName || hero.name;
+                const baseClass = CLASSES.find(c => c.name === baseName);
                 if (baseClass) {
                     hero.classData = baseClass;
+                    hero.baseName = baseName;
                 }
             });
         }
@@ -229,6 +277,21 @@ function carregarJogo() {
 
 function salvarJogo() {
     localStorage.setItem('idle_hero_save', JSON.stringify(gameState));
+}
+
+function getEvoMult(hero, statName) {
+    if (!hero || !hero.evolution || hero.evolution.tier === 0 || !hero.evolution.path) return 1.0;
+    const baseName = hero.baseName || hero.name;
+    const evoData = EVOLUTIONS[baseName];
+    if (!evoData) return 1.0;
+    const pathData = evoData[hero.evolution.path]; // opt1 or opt2
+    if (!pathData || !pathData.mults || pathData.mults[statName] === undefined) return 1.0;
+    
+    // Calcula multiplicador escalar por tier
+    const baseMult = pathData.mults[statName];
+    const diff = baseMult - 1.0;
+    let finalMult = 1.0 + (diff * hero.evolution.tier);
+    return Math.max(0.1, finalMult); // Não permite multiplicar por zero ou negativo
 }
 
 function getAvailableTreePoints() {
@@ -247,6 +310,9 @@ function getMaxHp(hero) {
         base += hero.equipment.armor.value;
     }
     if (gameState.skillTree.unlockedNodes.includes(2)) base *= 1.2;
+    
+    base *= getEvoMult(hero, 'hp');
+    
     return Math.floor(base);
 }
 
@@ -376,9 +442,12 @@ function updateUI() {
             <div class="char-info">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="char-name">${hero.name} (Nv ${hero.level})</span>
-                    <button class="btn-stat" style="width:20px; height:20px; border-radius:4px; font-size:0.7rem;" onclick="abrirStatus(${index})">
-                        ${hero.unspentPoints > 0 ? '✨' : 'ℹ️'}
-                    </button>
+                    <div>
+                        ${hero.level >= 30 * (hero.evolution.tier + 1) ? `<button class="btn-stat" style="width:25px; height:20px; border-radius:4px; font-size:0.7rem; color:gold; border-color:gold; margin-right:5px; box-shadow: 0 0 5px gold;" onclick="abrirEvolucao(${index})" title="Evoluir Classe!">⭐</button>` : ''}
+                        <button class="btn-stat" style="width:20px; height:20px; border-radius:4px; font-size:0.7rem;" onclick="abrirStatus(${index})">
+                            ${hero.unspentPoints > 0 ? '✨' : 'ℹ️'}
+                        </button>
+                    </div>
                 </div>
                 <div style="display:flex; justify-content:space-between;">
                     <span class="char-class">STR:${hero.stats.str} AGI:${hero.stats.agi} DEX:${hero.stats.dex} VIT:${hero.stats.vit} INT:${hero.stats.int}</span>
@@ -389,7 +458,10 @@ function updateUI() {
                     </span>
                 </div>
                 <div class="char-hp-bg" style="margin-bottom:2px;"><div class="char-hp-fill" style="width: ${hpPct}%"></div></div>
-                ${hero.xpMax ? `<div class="char-hp-bg" style="height:4px; background:#111;"><div class="char-hp-fill" style="width: ${Math.min(100, (hero.xp / hero.xpMax) * 100)}%; background:#f39c12;"></div></div>` : ''}
+                ${hero.xpMax ? `
+                <div style="font-size: 0.6rem; color: #f39c12; margin-top: 2px; text-align: center;">XP: ${hero.xp} / ${hero.xpMax}</div>
+                <div class="char-hp-bg" style="height:6px; background:#111;"><div class="char-hp-fill" style="width: ${Math.min(100, (hero.xp / hero.xpMax) * 100)}%; background:#f39c12;"></div></div>
+                ` : ''}
             </div>
         `;
         list.appendChild(div);
@@ -624,6 +696,25 @@ function iniciarCombate() {
                 if (hero.equipment && hero.equipment.weapon && gameState.skillTree.unlockedNodes.includes(10)) {
                     if (hero.equipment.weapon.stat === 'dmg' || hero.equipment.weapon.stat === 'magic_dmg') baseDmg += hero.equipment.weapon.value * 0.5;
                 }
+                
+                // Evoluções: Multiplicadores de Status
+                const baseClassStr = hero.baseName || hero.name;
+                const isMagic = ['Mago', 'Bruxo', 'Clérigo', 'Bardo', 'Necromante'].includes(baseClassStr);
+                
+                baseDmg *= getEvoMult(hero, 'dmg');
+                if (isMagic) baseDmg *= getEvoMult(hero, 'dmgMag');
+                
+                precisaoAtacante *= getEvoMult(hero, 'prec');
+                critChance *= getEvoMult(hero, 'crit');
+                if (isMagic) critChance *= getEvoMult(hero, 'critMag');
+                
+                let myEsqMult = getEvoMult(hero, 'esq');
+                // Defesa será aplicada no dano recebido pelo herói depois
+                
+                // Recalcula evasão com precisão escalada (caso Sniper etc)
+                evadeChance = 0.5 + ((evasaoDefensor - precisaoAtacante) * 0.001);
+                evadeChance = Math.max(0.05, Math.min(0.95, evadeChance));
+                isEvaded = Math.random() < evadeChance;
 
                 critChance = Math.max(0, critChance);
                 let isCrit = Math.random() < critChance;
@@ -691,6 +782,9 @@ function iniciarCombate() {
                             finalHeroHeal += hero.equipment.weapon.value;
                             if (gameState.skillTree.unlockedNodes.includes(10)) finalHeroHeal += hero.equipment.weapon.value * 0.5;
                         }
+                        
+                        finalHeroHeal *= getEvoMult(hero, 'heal');
+                        
                         finalHeroDmg = 0; // Heal não dá dano base
                         isEvaded = false; // Cura não pode ser evadida
                         isCrit = false;
@@ -846,9 +940,13 @@ function iniciarCombate() {
             
             if(target) {
                 // Evasão Heroi vs Precisão Inimigo
-                let evasaoHeroi = target.stats.agi;
+                let evasaoHeroi = target.stats.agi * getEvoMult(target, 'esq');
                 let precisaoInimigo = currentEnemy.stats ? currentEnemy.stats.dex : 1;
                 let evadeChance = 0.5 + ((evasaoHeroi - precisaoInimigo) * 0.001);
+                
+                // Redução de chance de crítico contra o herói baseada na Esquiva Crítica
+                let esqCritMult = getEvoMult(target, 'esqCrit');
+
                 evadeChance = Math.max(0.05, Math.min(0.95, evadeChance));
                 
                 let isEvaded = Math.random() < evadeChance;
@@ -863,6 +961,10 @@ function iniciarCombate() {
                     let vitHeroi = target.stats.vit;
                     let critChance = currentEnemy.isBoss ? 0.15 : 0.05;
                     if (currentEnemy.stats) critChance = (currentEnemy.stats.dex * 0.001) - (vitHeroi * 0.001);
+                    
+                    // Aplica redução de crítico
+                    if (esqCritMult > 1.0) critChance /= esqCritMult;
+                    
                     critChance = Math.max(0, critChance);
                     
                     let isBossCrit = Math.random() < critChance;
@@ -876,6 +978,8 @@ function iniciarCombate() {
 
                     let treeDefMult = gameState.skillTree.unlockedNodes.includes(3) ? 1.2 : 1.0;
                     let def = (target.stats.vit + bonusVit) * 1 * treeDefMult;
+                    def *= getEvoMult(target, 'def'); // Multiplicador de evolução
+                    
                     let danoBruto = enemyDmg - def;
                 
                 if (activeSyns.includes('linhaFrente')) {
@@ -960,6 +1064,17 @@ window.abrirStatus = function(index) {
             if (hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value * 0.5;
         }
     }
+    
+    // Aplica multiplicador de evolução
+    baseDmg *= getEvoMult(hero, 'dmg');
+    // Para classes mágicas, também usamos dmgMag como multiplicador visual base
+    const baseClassStr = hero.baseName || hero.name;
+    const isMagic = ['Mago', 'Bruxo', 'Clérigo', 'Bardo', 'Necromante'].includes(baseClassStr);
+    if (isMagic) {
+        baseDmg *= getEvoMult(hero, 'dmgMag');
+    }
+    critChance *= getEvoMult(hero, 'crit');
+    
     document.getElementById('stat-basedmg').innerText = Math.floor(baseDmg);
     document.getElementById('stat-crit').innerText = Math.floor(critChance * 100) + '%';
     
@@ -1049,6 +1164,92 @@ window.escolherSkill = function(skillId) {
 
 window.closeModal = function() {
     document.getElementById('modal-status').style.display = 'none';
+};
+
+window.abrirEvolucao = function(index) {
+    selectedHeroIndex = index;
+    const hero = gameState.team[index];
+    const baseName = hero.baseName || hero.name;
+    const evoData = EVOLUTIONS[baseName];
+    
+    if (!evoData) {
+        mostrarAviso("Este herói não possui evoluções disponíveis.", "error");
+        return;
+    }
+    
+    const isFirstTime = hero.evolution.tier === 0;
+    const currentPath = hero.evolution.path;
+    const nextTier = hero.evolution.tier + 1;
+    
+    document.getElementById('modal-evo-title').innerText = isFirstTime ? 'Escolha sua Evolução' : `Upgrade de Evolução (Tier ${nextTier})`;
+    document.getElementById('modal-evo-desc').innerText = isFirstTime ? 'Você só pode escolher uma especialização. Ela guiará seu herói para sempre!' : `Seu herói continuará se aprofundando nesta especialização.`;
+    
+    const optionsDiv = document.getElementById('evo-options');
+    optionsDiv.innerHTML = '';
+    
+    ['opt1', 'opt2'].forEach(optKey => {
+        const opt = evoData[optKey];
+        // Se não for a primeira vez, só mostra a opção que o usuário já escolheu no passado
+        if (!isFirstTime && currentPath !== optKey) return;
+        
+        let diffHtml = '';
+        for (let stat in opt.mults) {
+            let m = opt.mults[stat];
+            let isPositive = m >= 1.0;
+            let percent = Math.round(Math.abs(m - 1.0) * 100);
+            if (isPositive) {
+                diffHtml += `<span style="color:#2ecc71;">+${percent}% ${stat.toUpperCase()}</span><br>`;
+            } else {
+                diffHtml += `<span style="color:#e74c3c;">-${percent}% ${stat.toUpperCase()}</span><br>`;
+            }
+        }
+        
+        let costHtml = isFirstTime ? 'Gratuito!' : `Custo: ${nextTier * 1000} 💰`;
+        let btnText = isFirstTime ? 'Evoluir para esta Classe' : 'Aprimorar Tier';
+        
+        const btnClass = "btn btn-mmo";
+        
+        optionsDiv.innerHTML += `
+            <div style="background:#222; border:1px solid gold; border-radius:5px; padding:10px; display:flex; flex-direction:column; gap:5px;">
+                <div style="color:gold; font-weight:bold; font-size:1.1rem; text-align:center;">${opt.name}</div>
+                <div style="font-size:0.8rem; color:#ccc; text-align:center; font-style:italic;">${opt.desc}</div>
+                <div style="font-size:0.8rem; background:#111; padding:5px; border-radius:3px;">
+                    <div style="font-weight:bold; margin-bottom:3px; color:#fff;">Status por Tier:</div>
+                    ${diffHtml}
+                </div>
+                <div style="text-align:center; color:gold; font-weight:bold; font-size:0.9rem; margin-top:5px;">${costHtml}</div>
+                <button class="${btnClass}" style="margin-top:5px; width:100%;" onclick="confirmarEvolucao('${optKey}', ${isFirstTime ? 0 : nextTier * 1000})">${btnText}</button>
+            </div>
+        `;
+    });
+    
+    document.getElementById('modal-evolution').style.display = 'flex';
+};
+
+window.confirmarEvolucao = function(pathKey, cost) {
+    if (gameState.gold < cost) {
+        mostrarAviso("Ouro insuficiente para evoluir!", "error");
+        return;
+    }
+    
+    gameState.gold -= cost;
+    const hero = gameState.team[selectedHeroIndex];
+    hero.evolution.path = pathKey;
+    hero.evolution.tier++;
+    
+    const baseName = hero.baseName || hero.name;
+    const pathData = EVOLUTIONS[baseName][pathKey];
+    
+    let roman = ['','I','II','III','IV','V','VI','VII','VIII','IX','X'][hero.evolution.tier] || hero.evolution.tier;
+    hero.name = `${pathData.id} ${roman}`;
+    
+    // Atualiza HP caso a vida máxima tenha mudado
+    hero.hp = getMaxHp(hero);
+    
+    salvarJogo();
+    updateUI();
+    document.getElementById('modal-evolution').style.display = 'none';
+    mostrarAviso(`Herói evoluído para ${hero.name}!`, "success");
 };
 
 window.aposentarHeroi = function() {
@@ -1615,5 +1816,33 @@ window.comprarConstrucao = function(nodeId, type, price) {
         mostrarAviso(`Construção melhorada com sucesso!`, "success");
     } else {
         mostrarAviso(`Ouro insuficiente!`, "error");
+    }
+};
+
+window.executarComando = function() {
+    const input = document.getElementById('cheat-code');
+    const code = input.value.trim().toUpperCase();
+    input.value = '';
+    
+    if (code === 'UP1') {
+        gameState.team.forEach(h => {
+            h.level++;
+            h.unspentPoints += 5;
+            h.hp = getMaxHp(h);
+            if (h.xp === undefined) { h.xp = 0; h.xpMax = 100 * Math.pow(1.33, h.level - 1); }
+            h.xpMax = Math.floor(h.xpMax * 1.33);
+            h.xp = 0;
+        });
+        
+        mostrarAviso("Todos os heróis subiram 1 nível!", "success");
+        salvarJogo();
+        updateUI();
+    } else if (code === 'GOLD1') {
+        gameState.gold += 100000;
+        mostrarAviso("+100.000 Ouro adicionado!", "success");
+        salvarJogo();
+        updateUI();
+    } else {
+        mostrarAviso("Código inválido.", "error");
     }
 };
