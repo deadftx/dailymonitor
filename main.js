@@ -16,6 +16,14 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
     process.exit(0);
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
 }
 
 const configPath = path.join(app.getPath('userData'), 'config.json');

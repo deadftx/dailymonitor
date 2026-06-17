@@ -277,6 +277,20 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONSTRUÇÕES DE NODO -->
+    <div id="modal-node-buildings" class="modal" style="display: none; z-index: 130;">
+        <div class="modal-content mmo-modal" style="width: 95%; max-width: 450px; padding: 20px;">
+            <h2 id="node-build-title" style="font-family:'Cinzel', serif; color:gold; text-align:center; margin-top:0;">🏕️ Construir</h2>
+            <p style="text-align:center; color:#ccc; font-size:0.8rem; margin-bottom:15px;">Aumente a defesa deste nodo para resistir à invasões.<br>Ouro: <span id="build-gold">0</span> 💰</p>
+            
+            <div id="build-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Preenchido via JS -->
+            </div>
+            
+            <button class="btn btn-mmo-close" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('modal-node-buildings').style.display='none'">Voltar</button>
+        </div>
+    </div>
+
     <!-- MODAL ÁRVORE DE SKILLS GERAL -->
     <div id="modal-skilltree" class="modal" style="display: none; z-index: 150;">
         <div class="modal-content mmo-modal" style="width: 95%; max-width: 500px; padding: 20px; background: #111;">

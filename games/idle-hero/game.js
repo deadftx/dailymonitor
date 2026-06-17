@@ -145,7 +145,10 @@ const CLASSES = [
 
 const SHOP_ITEMS = [
     { id: 'w1', name: 'Espada de Ferro', type: 'weapon', stat: 'dmg', value: 5, price: 100, icon: '🗡️' },
-    { id: 'w2', name: 'Cajado Aprendiz', type: 'weapon', stat: 'heal', value: 5, price: 100, icon: '🪄' },
+    { id: 'w2', name: 'Arco Longo', type: 'weapon', stat: 'dmg', value: 8, price: 150, icon: '🏹' },
+    { id: 'm1', name: 'Cajado de Aprendiz', type: 'weapon', stat: 'magic_dmg', value: 5, price: 100, icon: '🪄' },
+    { id: 'm2', name: 'Grimório Sombrio', type: 'weapon', stat: 'magic_dmg', value: 12, price: 250, icon: '📓' },
+    { id: 'h1', name: 'Livro de Preces', type: 'weapon', stat: 'heal', value: 5, price: 100, icon: '📖' },
     { id: 'a1', name: 'Armadura de Couro', type: 'armor', stat: 'hp', value: 20, price: 150, icon: '🥋' },
     { id: 'r1', name: 'Anel do Vigia', type: 'accessory', stat: 'crit', value: 10, price: 200, icon: '💍' },
     { id: 'w3', name: 'Lâmina Rúnica', type: 'weapon', stat: 'dmg', value: 15, price: 500, icon: '⚔️' },
@@ -196,10 +199,15 @@ function carregarJogo() {
         if (gameState.tactics === undefined) gameState.tactics = [];
         if (gameState.nodes === undefined) {
             gameState.nodes = {
-                'mina_ferro': { name: 'Mina de Ferro', owned: false, yield: 2, invasion: false, price: 1000 },
-                'floresta': { name: 'Floresta Élfica', owned: false, yield: 5, invasion: false, price: 5000 },
-                'caverna': { name: 'Caverna do Dragão', owned: false, yield: 25, invasion: false, price: 30000 }
+                'mina_ferro': { name: 'Mina de Ferro', owned: false, yield: 2, invasion: false, price: 1000, buildings: {barricada:0, torre:0, tenda:0} },
+                'floresta': { name: 'Floresta Élfica', owned: false, yield: 5, invasion: false, price: 5000, buildings: {barricada:0, torre:0, tenda:0} },
+                'caverna': { name: 'Caverna do Dragão', owned: false, yield: 25, invasion: false, price: 30000, buildings: {barricada:0, torre:0, tenda:0} }
             };
+        } else {
+            // Compatibilidade retroativa
+            for (let k in gameState.nodes) {
+                if (!gameState.nodes[k].buildings) gameState.nodes[k].buildings = {barricada:0, torre:0, tenda:0};
+            }
         }
         if (gameState.defendingNode === undefined) gameState.defendingNode = null;
         
@@ -290,6 +298,8 @@ function comprarHeroi(classIndex) {
             name: cls.name,
             classData: cls,
             level: 1,
+            xp: 0,
+            xpMax: 100,
             unspentPoints: 0,
             stats: { ...cls.stats },
             hp: 0,
@@ -378,7 +388,8 @@ function updateUI() {
                         ${hero.equipment && hero.equipment.accessory ? hero.equipment.accessory.icon : ''}
                     </span>
                 </div>
-                <div class="char-hp-bg"><div class="char-hp-fill" style="width: ${hpPct}%"></div></div>
+                <div class="char-hp-bg" style="margin-bottom:2px;"><div class="char-hp-fill" style="width: ${hpPct}%"></div></div>
+                ${hero.xpMax ? `<div class="char-hp-bg" style="height:4px; background:#111;"><div class="char-hp-fill" style="width: ${Math.min(100, (hero.xp / hero.xpMax) * 100)}%; background:#f39c12;"></div></div>` : ''}
             </div>
         `;
         list.appendChild(div);
@@ -418,8 +429,15 @@ function gerarInimigo() {
         }
     }
 
-    let hp = 50 * actualLevelForEnemy;
-    let attackBase = 5 * actualLevelForEnemy;
+    let statPoints = isBoss ? actualLevelForEnemy * 10 : actualLevelForEnemy * 5;
+    let enemyStats = { str: 1, agi: 1, dex: 1, vit: 1, int: 1 };
+    let statsKeys = ['str', 'agi', 'dex', 'vit', 'int'];
+    for(let i=0; i<statPoints; i++) {
+        enemyStats[statsKeys[Math.floor(Math.random() * statsKeys.length)]]++;
+    }
+
+    let hp = enemyStats.vit * 5 + (actualLevelForEnemy * 10);
+    let attackBase = (enemyStats.str + enemyStats.int) * 2;
     
     if (isBoss) {
         hp *= 10;
@@ -431,6 +449,7 @@ function gerarInimigo() {
         hp: hp,
         maxHp: hp,
         attackBase: attackBase,
+        stats: enemyStats,
         isBoss: isBoss,
         img: `https://api.dicebear.com/7.x/bottts/svg?seed=${nome}&baseColor=e74c3c,c0392b`
     };
@@ -508,9 +527,39 @@ function iniciarCombate() {
             document.getElementById('team-gold').innerText = gameState.gold;
         }
 
+        let combatLogHtml = [];
+        
+        // Aplica Buffs de Defesa de Nodo
+        let bonusVit = 0;
+        let dmgDaTorre = 0;
+        let healDaTenda = 0;
+        
+        if (gameState.defendingNode) {
+            let n = gameState.nodes[gameState.defendingNode];
+            if (n.buildings) {
+                bonusVit = n.buildings.barricada || 0;
+                dmgDaTorre = (n.buildings.torre || 0) * (30 * gameState.level); // Dano massivo pro boss
+                healDaTenda = (n.buildings.tenda || 0) * (15 * gameState.level);
+            }
+        }
+        
+        // Tenda de Cura (AoE Heal)
+        if (healDaTenda > 0) {
+            gameState.team.forEach(hero => {
+                if (hero.hp > 0) {
+                    hero.hp = Math.min(getMaxHp(hero) + (bonusVit * 5), hero.hp + healDaTenda);
+                }
+            });
+        }
+        
+        // Torre de Arqueiro
+        if (dmgDaTorre > 0 && currentEnemy && currentEnemy.hp > 0) {
+            currentEnemy.hp -= dmgDaTorre;
+            combatLogHtml.push(`<div style="margin-bottom:2px; color:#e67e22; font-style:italic;">🏹 A Torre causou <b style="color:#e74c3c">${Math.floor(dmgDaTorre)}</b> de dano passivo!</div>`);
+        }
+
         // Ataque dos Heróis
         let totalDamage = 0;
-        let combatLogHtml = [];
         
         let treeDmgMult = gameState.skillTree.unlockedNodes.includes(1) ? 1.2 : 1.0;
         let treeBossDmgMult = gameState.skillTree.unlockedNodes.includes(4) ? 1.3 : 1.0;
@@ -536,25 +585,52 @@ function iniciarCombate() {
                     if (hero.cds[sName] > 0) hero.cds[sName]--;
                 }
 
-                let baseDmg = hero.stats.str * 2 + hero.stats.int * 2;
-                let critChance = 0.05 + (hero.stats.dex * 0.02);
+                const classType = {
+                    'Arqueiro': 'fisico', 'Guerreiro': 'fisico', 'Assassino': 'fisico', 'Monge': 'fisico', 'Berserker': 'fisico',
+                    'Mago': 'magico', 'Paladino': 'magico', 'Necromante': 'magico',
+                    'Bardo': 'suporte', 'Clérigo': 'suporte'
+                };
+                let cType = classType[hero.name] || 'fisico';
+                
+                let baseDmg = 0;
+                if (cType === 'fisico') baseDmg = hero.stats.str * 2;
+                else if (cType === 'magico' || cType === 'suporte') baseDmg = hero.stats.int * 2;
+
+                // Evasão e Precisão
+                let precisaoAtacante = hero.stats.dex;
+                let evasaoDefensor = currentEnemy.stats ? currentEnemy.stats.agi : 1;
+                let evadeChance = 0.5 + ((evasaoDefensor - precisaoAtacante) * 0.001);
+                evadeChance = Math.max(0.05, Math.min(0.95, evadeChance));
+                let isEvaded = Math.random() < evadeChance;
+
+                // Crítico
+                let defVit = currentEnemy.stats ? currentEnemy.stats.vit : 1;
+                let critChance = (hero.stats.dex * 0.001) - (defVit * 0.001);
                 
                 if (activeSyns.includes('sombrasGemeas')) critChance += 0.10;
                 if (activeSyns.includes('menteBrilhante') && hero.stats.int > hero.stats.str) baseDmg *= 1.2;
                 
                 // Bônus de Equipamento
                 if (hero.equipment) {
-                    if (hero.equipment.weapon && hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value;
+                    if (hero.equipment.weapon) {
+                        if (cType === 'fisico' && hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value;
+                        if ((cType === 'magico' || cType === 'suporte') && hero.equipment.weapon.stat === 'magic_dmg') baseDmg += hero.equipment.weapon.value;
+                    }
                     if (hero.equipment.accessory && hero.equipment.accessory.stat === 'dmg') baseDmg += hero.equipment.accessory.value;
                     if (hero.equipment.accessory && hero.equipment.accessory.stat === 'crit') critChance += hero.equipment.accessory.value / 100;
                 }
                 
                 // Mestre de Armas Passiva (Tier 4 Tree)
                 if (hero.equipment && hero.equipment.weapon && gameState.skillTree.unlockedNodes.includes(10)) {
-                    if (hero.equipment.weapon.stat === 'dmg') baseDmg += hero.equipment.weapon.value * 0.5;
+                    if (hero.equipment.weapon.stat === 'dmg' || hero.equipment.weapon.stat === 'magic_dmg') baseDmg += hero.equipment.weapon.value * 0.5;
                 }
 
+                critChance = Math.max(0, critChance);
                 let isCrit = Math.random() < critChance;
+                
+                let baseCritMult = 1.5;
+                let treeCritMultAdd = gameState.skillTree.unlockedNodes.includes(15) ? 1.0 : 0.0;
+                let critDmgMult = baseCritMult + (hero.stats.dex * 0.01) + treeCritMultAdd;
                 
                 let finalHeroDmg = baseDmg;
                 let finalHeroHeal = 0;
@@ -607,12 +683,17 @@ function iniciarCombate() {
                     if (usedSkill.type === 'dmg' || usedSkill.type === 'aoe' || usedSkill.type === 'dot') {
                         finalHeroDmg = baseDmg * (1 + usedSkill.mult);
                     } else if (usedSkill.type === 'heal') {
-                        finalHeroHeal = usedSkill.mult * (hero.stats.int + hero.stats.vit);
+                        let healPower = (hero.stats.int + hero.stats.vit);
+                        let healEffectiveness = 1 + (hero.stats.int * 0.005);
+                        finalHeroHeal = (usedSkill.mult * healPower) * healEffectiveness;
+                        
                         if (hero.equipment && hero.equipment.weapon && hero.equipment.weapon.stat === 'heal') {
                             finalHeroHeal += hero.equipment.weapon.value;
                             if (gameState.skillTree.unlockedNodes.includes(10)) finalHeroHeal += hero.equipment.weapon.value * 0.5;
                         }
-                        finalHeroDmg = 0; // Heal não dá dano base (simplificação)
+                        finalHeroDmg = 0; // Heal não dá dano base
+                        isEvaded = false; // Cura não pode ser evadida
+                        isCrit = false;
                     }
                     
                     // Arquimago Passiva (Tier 4 Tree) - 20% dobrar efeito da skill
@@ -623,8 +704,11 @@ function iniciarCombate() {
                     }
                 }
                 
-                if (isCrit && finalHeroDmg > 0) {
-                    finalHeroDmg *= treeCritMult;
+                if (isEvaded && finalHeroDmg > 0) {
+                    finalHeroDmg = 0;
+                    attackName += " <span style='color:#7f8c8d; font-style:italic;'>[Esquivou!]</span>";
+                } else if (isCrit && finalHeroDmg > 0) {
+                    finalHeroDmg *= critDmgMult;
                     attackName += " <span style='color:#f1c40f;'>[CRÍTICO]</span>";
                 }
 
@@ -717,24 +801,36 @@ function iniciarCombate() {
                 }
             }
             
-            // Check level up global
-            let levelsGained = 0;
+            // Check level up global (Rank da Equipe)
             while (gameState.xp >= gameState.xpMax) {
                 gameState.level++;
-                levelsGained++;
                 gameState.xp -= gameState.xpMax;
                 gameState.xpMax = Math.floor(gameState.xpMax * 1.33);
             }
             
-            if (levelsGained > 0) {
-                gameState.team.forEach(h => {
-                    h.level += levelsGained;
+            // Individual Hero XP
+            let xpPerHero = Math.floor(xpGained / gameState.team.length);
+            let anyLevelUp = false;
+            
+            gameState.team.forEach(h => {
+                if (h.xp === undefined) { h.xp = 0; h.xpMax = 100 * Math.pow(1.33, h.level - 1); }
+                h.xp += xpPerHero;
+                let levelsGained = 0;
+                while (h.xp >= h.xpMax) {
+                    h.level++;
+                    levelsGained++;
+                    h.xp -= h.xpMax;
+                    h.xpMax = Math.floor(h.xpMax * 1.33);
+                }
+                if (levelsGained > 0) {
                     h.unspentPoints += 5 * levelsGained;
                     h.hp = getMaxHp(h);
-                });
-                logDiv.innerHTML += `<div style="color:gold; text-align:center; font-weight:bold;">🌟 LEVEL UP DA EQUIPE!</div>`;
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
+                    anyLevelUp = true;
+                    logDiv.innerHTML += `<div style="color:gold; text-align:center; font-weight:bold;">🌟 ${h.name} UP! (Nv ${h.level})</div>`;
+                }
+            });
+            
+            if (anyLevelUp) logDiv.scrollTop = logDiv.scrollHeight;
             
             gerarInimigo();
         } else {
@@ -749,14 +845,38 @@ function iniciarCombate() {
             });
             
             if(target) {
-                let bossCritChance = currentEnemy.isBoss ? 0.15 : 0;
-                let isBossCrit = Math.random() < bossCritChance;
-                let enemyDmg = currentEnemy.attackBase;
-                if (isBossCrit) enemyDmg *= 2;
+                // Evasão Heroi vs Precisão Inimigo
+                let evasaoHeroi = target.stats.agi;
+                let precisaoInimigo = currentEnemy.stats ? currentEnemy.stats.dex : 1;
+                let evadeChance = 0.5 + ((evasaoHeroi - precisaoInimigo) * 0.001);
+                evadeChance = Math.max(0.05, Math.min(0.95, evadeChance));
+                
+                let isEvaded = Math.random() < evadeChance;
+                let logDiv = document.getElementById('combat-log');
+                
+                if (isEvaded) {
+                    logDiv.innerHTML += `<div style="margin-top:2px;">O ${currentEnemy.name} atacou ${target.name}, mas ele <span style='color:#7f8c8d; font-style:italic;'>[Esquivou!]</span></div>`;
+                } else {
+                    let enemyDmg = currentEnemy.attackBase;
+                    
+                    // Critico do Inimigo
+                    let vitHeroi = target.stats.vit;
+                    let critChance = currentEnemy.isBoss ? 0.15 : 0.05;
+                    if (currentEnemy.stats) critChance = (currentEnemy.stats.dex * 0.001) - (vitHeroi * 0.001);
+                    critChance = Math.max(0, critChance);
+                    
+                    let isBossCrit = Math.random() < critChance;
+                    let baseCritMult = 1.5;
+                    let critDmgMult = currentEnemy.stats ? baseCritMult + (currentEnemy.stats.dex * 0.01) : 2.0;
+                    
+                    if (isBossCrit) {
+                        enemyDmg *= critDmgMult;
+                        logDiv.innerHTML += `<div style="margin-top:2px; color:#e67e22; font-size:0.8rem;">O Inimigo causou um Dano Crítico!</div>`;
+                    }
 
-                let treeDefMult = gameState.skillTree.unlockedNodes.includes(3) ? 1.2 : 1.0;
-                let def = target.stats.vit * 1 * treeDefMult;
-                let danoBruto = enemyDmg - def;
+                    let treeDefMult = gameState.skillTree.unlockedNodes.includes(3) ? 1.2 : 1.0;
+                    let def = (target.stats.vit + bonusVit) * 1 * treeDefMult;
+                    let danoBruto = enemyDmg - def;
                 
                 if (activeSyns.includes('linhaFrente')) {
                     danoBruto *= 0.70; // 30% redução
@@ -782,6 +902,7 @@ function iniciarCombate() {
                 
                 document.getElementById('combat-log').innerHTML += `<div style="margin-bottom:2px; color:#e67e22;">${msg}</div>`;
             }
+        }
         }
         
         // Verifica Wipe
@@ -1083,7 +1204,7 @@ window.saveSettings = function() {
 
 window.confirmarReset = function() {
     const input = document.getElementById('input-reset').value;
-    if (input === 'CERTEZA') {
+    if (input.trim().toUpperCase() === 'CERTEZA') {
         localStorage.removeItem('idle_hero_save');
         location.reload(); // Recarrega a janela do jogo para começar limpo
     } else {
@@ -1275,6 +1396,10 @@ window.mostrarAviso = function(msg, tipo = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
     
+    while (container.childElementCount >= 2) {
+        container.removeChild(container.firstElementChild);
+    }
+    
     const toast = document.createElement('div');
     toast.className = `mmo-toast ${tipo}`;
     toast.innerText = msg;
@@ -1417,7 +1542,10 @@ function renderNodes() {
             } else {
                 statusColor = 'rgba(46, 204, 113, 0.1)';
                 borderColor = '#2ecc71';
-                acaoHTML = `<span style="color:#2ecc71; font-weight:bold; font-size:0.8rem;">✔️ Dominado</span>`;
+                acaoHTML = `<div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
+                                <span style="color:#2ecc71; font-weight:bold; font-size:0.8rem;">✔️ Dominado</span>
+                                <button class="btn-stat" style="font-size:0.7rem; padding:3px 5px;" onclick="abrirConstrucoes('${key}')">🔨 Construir</button>
+                            </div>`;
             }
         } else {
             acaoHTML = `<button class="btn-mmo" style="font-size:0.8rem; padding:5px; border-radius:3px;" onclick="comprarNodo('${key}')">Reivindicar (${n.price}💰)</button>`;
@@ -1437,3 +1565,55 @@ function renderNodes() {
         `;
     }
 }
+
+window.abrirConstrucoes = function(id) {
+    const node = gameState.nodes[id];
+    if (!node.buildings) node.buildings = { barricada: 0, torre: 0, tenda: 0 };
+    
+    document.getElementById('node-build-title').innerText = `Construções: ${node.name}`;
+    document.getElementById('build-gold').innerText = gameState.gold;
+    
+    const list = document.getElementById('build-list');
+    list.innerHTML = '';
+    
+    const buildingsInfo = {
+        'barricada': { name: 'Barricada', desc: '+1 VIT para toda equipe durante defesas.', icon: '🛡️', basePrice: 500 },
+        'torre': { name: 'Torre de Arqueiro', desc: 'Dano passivo no invasor a cada turno.', icon: '🏹', basePrice: 1000 },
+        'tenda': { name: 'Tenda de Cura', desc: 'Cura passiva na equipe a cada turno.', icon: '⛺', basePrice: 1500 }
+    };
+    
+    for(let b in buildingsInfo) {
+        let level = node.buildings[b] || 0;
+        let info = buildingsInfo[b];
+        let price = info.basePrice * Math.pow(2, level);
+        
+        list.innerHTML += `
+            <div style="background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="font-size:1.5rem;">${info.icon}</div>
+                    <div>
+                        <div style="font-weight:bold; color:gold;">${info.name} (Nv ${level})</div>
+                        <div style="font-size:0.7rem; color:#aaa;">${info.desc}</div>
+                    </div>
+                </div>
+                <button class="btn-mmo" style="font-size:0.8rem; padding:5px;" onclick="comprarConstrucao('${id}', '${b}', ${price})">Upgrade (${price}💰)</button>
+            </div>
+        `;
+    }
+    
+    document.getElementById('modal-node-buildings').style.display = 'flex';
+};
+
+window.comprarConstrucao = function(nodeId, type, price) {
+    if (gameState.gold >= price) {
+        gameState.gold -= price;
+        gameState.nodes[nodeId].buildings[type]++;
+        salvarJogo();
+        updateUI();
+        abrirConstrucoes(nodeId);
+        renderNodes();
+        mostrarAviso(`Construção melhorada com sucesso!`, "success");
+    } else {
+        mostrarAviso(`Ouro insuficiente!`, "error");
+    }
+};
