@@ -199,8 +199,10 @@ body {
 /* SKILL TREE & SKILLS */
 .radial-tree-container {
     position: relative;
-    width: 300px;
-    height: 300px;
+    width: 100%;
+    max-width: 380px;
+    aspect-ratio: 1 / 1;
+    height: auto;
     margin: 0 auto;
     background: radial-gradient(circle at center, #222 0%, #0a0a0a 70%);
     border-radius: 50%;
@@ -271,6 +273,9 @@ body {
 .node-outer-1 { top: 5%; left: 15%; }
 .node-outer-2 { top: 5%; left: 85%; }
 .node-outer-3 { top: 95%; left: 50%; }
+.node-outer-4 { top: 95%; left: 15%; }
+.node-outer-5 { top: 95%; left: 85%; }
+.node-outer-6 { top: 5%; left: 50%; }
 
 .btn-mmo-danger { color: #e74c3c; border-color: #e74c3c; }
 .btn-mmo-danger:hover { background: #c0392b; color: white; border-color: #c0392b; }

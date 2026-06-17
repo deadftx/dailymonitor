@@ -20,6 +20,7 @@
     <div class="container">
         <!-- ÁREA DE COMBATE COM IMAGEM -->
         <div class="combat-area">
+            <button id="btn-toggle-log" onclick="toggleLog()" style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #555; padding:4px 8px; cursor:pointer; font-size:0.75rem; border-radius:3px; z-index:10; transition:0.2s;" onmouseover="this.style.borderColor='#f1c40f'" onmouseout="this.style.borderColor='#555'">👁️ Ocultar Log</button>
             <div id="combat-log">Aventureiros descansando...</div>
             <div class="enemy-display" id="enemy-display" style="display: none;">
                 <img id="enemy-img" src="" alt="Enemy">
@@ -281,6 +282,15 @@
                 </button>
                 <button class="btn-tree-node node-outer-3" id="btn-tree-12" onclick="buyTreeNode(12)">
                     <div class="tree-icon">🌌</div><div class="tree-tooltip"><b>Arquimago</b><br>20% Dobrar Magia</div>
+                </button>
+                <button class="btn-tree-node node-outer-4" id="btn-tree-13" onclick="buyTreeNode(13)">
+                    <div class="tree-icon">🌟</div><div class="tree-tooltip"><b>Aura do Herói</b><br>Curam 5% HP/Turno</div>
+                </button>
+                <button class="btn-tree-node node-outer-5" id="btn-tree-14" onclick="buyTreeNode(14)">
+                    <div class="tree-icon">🩸</div><div class="tree-tooltip"><b>Sede Sangue</b><br>+10% Roubo Vida</div>
+                </button>
+                <button class="btn-tree-node node-outer-6" id="btn-tree-15" onclick="buyTreeNode(15)">
+                    <div class="tree-icon">☠️</div><div class="tree-tooltip"><b>Exterminador</b><br>Crítico x3 Dano</div>
                 </button>
             </div>
             

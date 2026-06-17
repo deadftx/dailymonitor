@@ -12,7 +12,7 @@ function getConfig() {
             return JSON.parse(fs.readFileSync(configPath, 'utf8'));
         }
     } catch (e) {}
-    return { wallpaperMode: false };
+    return { };
 }
 
 function saveConfig(key, value) {
@@ -173,10 +173,6 @@ function createMainWindow() {
         }
     });
 
-    // O Hack do blur foi removido porque só funcionava quando a janela estava ativa.
-    // Agora confiamos no evento 'minimize' abaixo, que vai disparar pois a janela
-    // ficará na barra de tarefas (skipTaskbar: false).
-
     mainWindow.webContents.once('did-finish-load', () => {
         setTimeout(() => {
             if(splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
@@ -335,9 +331,6 @@ app.whenReady().then(() => {
         });
     });
 
-    ipcMain.on('set-wallpaper-mode', (event, enable) => {
-        saveConfig('wallpaperMode', enable);
-    });
 
     ipcMain.on('restart-app', () => {
         app.relaunch();
@@ -347,12 +340,8 @@ app.whenReady().then(() => {
     ipcMain.on('set-alwayson', (event, enable) => {
         alwaysOnEnabled = enable;
         if (mainWindow) {
-            // Se NÃO estivermos no Modo Wallpaper absoluto, vamos deixar na barra de tarefas
-            // para que o Win+D force o 'minimize' e a gente consiga trazer de volta (com a piscada).
-            if (!getConfig().wallpaperMode) {
-                mainWindow.setSkipTaskbar(false);
-                mainWindow.setMinimizable(true);
-            }
+            mainWindow.setSkipTaskbar(false);
+            mainWindow.setMinimizable(true);
             if (enable) {
                 mainWindow.setAlwaysOnTop(false);
             }
@@ -393,4 +382,9 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+    exec('taskkill /F /IM DailyMonitorLauncher.exe /T', () => {});
+    exec('taskkill /F /IM electron.exe /T', () => {});
 });

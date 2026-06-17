@@ -153,7 +153,18 @@ const SHOP_ITEMS = [
     { id: 'a2', name: 'Placa de Aço', type: 'armor', stat: 'hp', value: 50, price: 600, icon: '🛡️' },
     { id: 'r2', name: 'Amuleto Rubi', type: 'accessory', stat: 'dmg', value: 10, price: 800, icon: '📿' },
     { id: 'w5', name: 'Excalibur', type: 'weapon', stat: 'dmg', value: 50, price: 2500, icon: '🔥' },
-    { id: 'a3', name: 'Manto Celestial', type: 'armor', stat: 'hp', value: 150, price: 3000, icon: '✨' }
+    { id: 'a3', name: 'Manto Celestial', type: 'armor', stat: 'hp', value: 150, price: 3000, icon: '✨' },
+    // Novas Camadas 2x Melhores / 4x Mais Caras
+    { id: 'w1_2', name: 'Montante Bárbaro', type: 'weapon', stat: 'dmg', value: 10, price: 400, icon: '🗡️' },
+    { id: 'w2_2', name: 'Cajado do Magus', type: 'weapon', stat: 'heal', value: 10, price: 400, icon: '🪄' },
+    { id: 'a1_2', name: 'Couro de Wyvern', type: 'armor', stat: 'hp', value: 40, price: 600, icon: '🥋' },
+    { id: 'r1_2', name: 'Anel do Caçador', type: 'accessory', stat: 'crit', value: 20, price: 800, icon: '💍' },
+    { id: 'w3_2', name: 'Lâmina do Caos', type: 'weapon', stat: 'dmg', value: 30, price: 2000, icon: '⚔️' },
+    { id: 'w4_2', name: 'Tomo dos Deuses', type: 'weapon', stat: 'heal', value: 30, price: 2000, icon: '📖' },
+    { id: 'a2_2', name: 'Placa de Mithril', type: 'armor', stat: 'hp', value: 100, price: 2400, icon: '🛡️' },
+    { id: 'r2_2', name: 'Amuleto Titã', type: 'accessory', stat: 'dmg', value: 20, price: 3200, icon: '📿' },
+    { id: 'w5_2', name: 'Ragnarok', type: 'weapon', stat: 'dmg', value: 100, price: 10000, icon: '☄️' },
+    { id: 'a3_2', name: 'Armadura Divina', type: 'armor', stat: 'hp', value: 300, price: 12000, icon: '🌟' }
 ];
 
 let gameState = {
@@ -384,7 +395,11 @@ function gerarInimigo() {
     document.getElementById('enemy-img').src = currentEnemy.img;
     document.getElementById('enemy-img').style.transform = isBoss ? 'scale(1.5)' : 'scale(1)';
     document.getElementById('enemy-hp').style.width = '100%';
-    document.getElementById('combat-log').innerHTML = isBoss ? `<span style="color:red; font-weight:bold;">O terrível ${currentEnemy.name} surgiu!</span>` : `Um ${currentEnemy.name} apareceu!`;
+    let logDiv = document.getElementById('combat-log');
+    if (logDiv) {
+        logDiv.innerHTML += isBoss ? `<div style="color:red; font-weight:bold; margin-top:10px;">O terrível ${currentEnemy.name} surgiu!</div>` : `<div style="color:#aaa; font-style:italic; margin-top:10px;">Um ${currentEnemy.name} apareceu!</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
 }
 
 function iniciarCombate() {
@@ -405,6 +420,10 @@ function iniciarCombate() {
                 h.hp += getMaxHp(h) * 0.1; // Revive 10% por turno
             } else {
                 vivos++;
+                // Passiva Tier 5: Aura do Herói
+                if (gameState.skillTree.unlockedNodes.includes(13)) {
+                    h.hp = Math.min(getMaxHp(h), h.hp + (getMaxHp(h) * 0.05));
+                }
             }
         });
         
@@ -424,6 +443,9 @@ function iniciarCombate() {
         let treeMobDmgMult = gameState.skillTree.unlockedNodes.includes(6) ? 1.3 : 1.0;
         let treeHealPassMult = gameState.skillTree.unlockedNodes.includes(7) ? 1.5 : 1.0;
         let treeVampirism = gameState.skillTree.unlockedNodes.includes(9) ? 0.1 : 0;
+        if (gameState.skillTree.unlockedNodes.includes(14)) treeVampirism += 0.1; // Sede Sangue +10%
+
+        let treeCritMult = gameState.skillTree.unlockedNodes.includes(15) ? 3 : 2; // Exterminador
 
         gameState.team.forEach(hero => {
             if(hero.hp > 0 && currentEnemy.hp - totalDamage > 0) {
@@ -493,7 +515,7 @@ function iniciarCombate() {
                 }
                 
                 if (isCrit && finalHeroDmg > 0) {
-                    finalHeroDmg *= 2;
+                    finalHeroDmg *= treeCritMult;
                     attackName += " <span style='color:#f1c40f;'>[CRÍTICO]</span>";
                 }
 
@@ -759,7 +781,7 @@ window.closeModal = function() {
 window.abrirSkillTree = function() {
     let pts = getAvailableTreePoints();
     document.getElementById('tree-points').innerText = pts;
-    for(let i=1; i<=12; i++) {
+    for(let i=1; i<=15; i++) {
         let btn = document.getElementById(`btn-tree-${i}`);
         if(!btn) continue;
         
@@ -778,6 +800,11 @@ window.abrirSkillTree = function() {
         if (i===10 && !gameState.skillTree.unlockedNodes.includes(1)) isBlocked = true;
         if (i===11 && !gameState.skillTree.unlockedNodes.includes(2)) isBlocked = true;
         if (i===12 && !gameState.skillTree.unlockedNodes.includes(8)) isBlocked = true;
+
+        // Tier 5 Requirements
+        if (i===13 && !gameState.skillTree.unlockedNodes.includes(7)) isBlocked = true;
+        if (i===14 && !gameState.skillTree.unlockedNodes.includes(9)) isBlocked = true;
+        if (i===15 && !gameState.skillTree.unlockedNodes.includes(4)) isBlocked = true;
         
         if (gameState.skillTree.unlockedNodes.includes(i)) {
             btn.classList.add('unlocked');
@@ -802,6 +829,11 @@ window.buyTreeNode = function(id) {
     if (id===10 && !gameState.skillTree.unlockedNodes.includes(1)) return;
     if (id===11 && !gameState.skillTree.unlockedNodes.includes(2)) return;
     if (id===12 && !gameState.skillTree.unlockedNodes.includes(8)) return;
+
+    // Tier 5 Requirements
+    if (id===13 && !gameState.skillTree.unlockedNodes.includes(7)) return;
+    if (id===14 && !gameState.skillTree.unlockedNodes.includes(9)) return;
+    if (id===15 && !gameState.skillTree.unlockedNodes.includes(4)) return;
     
     if (getAvailableTreePoints() > 0) {
         gameState.skillTree.unlockedNodes.push(id);
@@ -1060,4 +1092,16 @@ window.mostrarAviso = function(msg, tipo = 'success') {
             toast.remove();
         }
     }, 3000);
+};
+
+window.toggleLog = function() {
+    const log = document.getElementById('combat-log');
+    const btn = document.getElementById('btn-toggle-log');
+    if (log.style.display === 'none') {
+        log.style.display = 'block';
+        btn.innerHTML = '👁️ Ocultar Log';
+    } else {
+        log.style.display = 'none';
+        btn.innerHTML = '👁️ Mostrar Log';
+    }
 };

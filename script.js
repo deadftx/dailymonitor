@@ -11,8 +11,21 @@ let configApp = {
     audioDeviceLabelYt: "",
     wallpaperPath: "",
     wallpaperOpacity: 0.5,
-    alwaysOn: false,
-    wallpaperMode: false
+    alwaysOn: false
+};
+
+// Override native alert to use custom modal
+window.alert = function(message) {
+    const modal = document.getElementById('modal-system-alert');
+    if(modal) {
+        document.getElementById('system-alert-message').innerText = message;
+        modal.style.display = 'flex';
+        document.getElementById('btn-system-alert-ok').onclick = () => {
+            modal.style.display = 'none';
+        };
+    } else {
+        console.log("ALERT:", message);
+    }
 };
 
 // Nova Estrutura para os Lembretes Momentâneos (inclui dados de alarme)
@@ -31,7 +44,6 @@ async function carregarConfiguracoes() {
     ipcRenderer.send('set-autostart', configApp.autostart);
     ipcRenderer.send('set-fullscreen', configApp.fullscreen);
     ipcRenderer.send('set-alwayson', configApp.alwaysOn);
-    ipcRenderer.send('set-wallpaper-mode', configApp.wallpaperMode);
 
     if (configApp.monitorId) {
         ipcRenderer.send('set-monitor', configApp.monitorId, configApp.fullscreen);
@@ -104,7 +116,6 @@ document.getElementById('btn-configuracoes').onclick = () => {
     document.getElementById('config-autostart').checked = configApp.autostart;
     document.getElementById('config-fullscreen').checked = configApp.fullscreen !== false;
     document.getElementById('config-alwayson').checked = configApp.alwaysOn;
-    document.getElementById('config-wallpaper-mode').checked = configApp.wallpaperMode;
     document.getElementById('config-opacidade').value = configApp.wallpaperOpacity;
     caminhoWallpaperTemporario = configApp.wallpaperPath;
     document.getElementById('nome-arquivo-escolhido').innerText = configApp.wallpaperPath || "Nenhum selecionado";
@@ -123,9 +134,6 @@ document.getElementById('btn-salvar-config').onclick = () => {
     configApp.fullscreen = document.getElementById('config-fullscreen').checked;
     configApp.alwaysOn = document.getElementById('config-alwayson').checked;
     
-    let oldWallpaperMode = configApp.wallpaperMode;
-    configApp.wallpaperMode = document.getElementById('config-wallpaper-mode').checked;
-
     configApp.monitorId = document.getElementById('config-monitor').value;
     configApp.audioDeviceId = document.getElementById('config-audio').value;
     if (document.getElementById('config-audio-yt')) {
@@ -140,12 +148,6 @@ document.getElementById('btn-salvar-config').onclick = () => {
     modalConfig.style.display = 'none';
 
     carregarConfiguracoes();
-
-    if (oldWallpaperMode !== configApp.wallpaperMode) {
-        // Envia o novo valor imediatamente e reinicia o app
-        ipcRenderer.send('set-wallpaper-mode', configApp.wallpaperMode);
-        ipcRenderer.send('restart-app');
-    }
 };
 
 // ====== VARIÁVEIS GLOBAIS DA AGENDA ======
@@ -180,6 +182,8 @@ function tick() {
         if (clockElement) clockElement.innerText = `${fh}:${fm}`;
         checkAlarms();
         if (h === 0 && m === 0) renderizarShoppingList();
+        renderizarTarefas();
+        renderizarMomentaneas();
     }
 }
 
@@ -219,7 +223,26 @@ function checkAlarms() {
 
     const momentaneasComAlarme = momentaneas.filter(m => !m.arquivado && m.time !== "");
     const gamesAtivos = typeof gameAlerts !== 'undefined' ? gameAlerts.filter(g => g.ativo).map(g => ({...g, category: 'Game', preAviso: "0", isGame: true})) : [];
-    const todasTasks = [...tarefas, ...momentaneasComAlarme, ...gamesAtivos];
+    let calendarTasks = [];
+    if (typeof getEventosParaData === 'function') {
+        const evs = getEventosParaData(dataH.getFullYear(), dataH.getMonth(), dataH.getDate());
+        evs.forEach(ev => {
+            if (ev.dash && ev.time) {
+                calendarTasks.push({
+                    id: ev.id,
+                    title: ev.title,
+                    time: ev.time,
+                    category: ev.cat || 'Agenda do Dia',
+                    ativo: true,
+                    isAgenda: true,
+                    preAviso: "0",
+                    originStr: ev.originStr,
+                    notas: ev.notas || ""
+                });
+            }
+        });
+    }
+    const todasTasks = [...tarefas, ...momentaneasComAlarme, ...gamesAtivos, ...calendarTasks];
 
     todasTasks.forEach(tarefa => {
         if (!tarefa.ativo) return;
@@ -248,7 +271,11 @@ function acionarTelaAlarme(tarefa) {
         modalAlerta.style.display = 'none';
         stopBeep();
 
-        if (!tarefa.dias && !tarefa.isGame) {
+        if (tarefa.isAgenda) {
+            if (typeof deletarEventoAgenda === 'function') {
+                deletarEventoAgenda(tarefa.id, tarefa.originStr);
+            }
+        } else if (!tarefa.dias && !tarefa.isGame) {
             console.log(`Auto-arquivando nota rápida concluída: ${tarefa.title}`);
             arquivarLembrete(tarefa.id);
         }
@@ -268,7 +295,11 @@ function renderizarTarefas() {
     if (!board) return; board.innerHTML = '';
     
     let combinedTarefas = [...tarefas];
-    const hoje = new Date();
+    const hoje = new Date(Date.now() + timeOffset);
+    const hAtualStr = hoje.getHours().toString().padStart(2, '0');
+    const mAtualStr = hoje.getMinutes().toString().padStart(2, '0');
+    const horaLocalStr = `${hAtualStr}:${mAtualStr}`;
+
     if (typeof getEventosParaData === 'function') {
         const evs = getEventosParaData(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         evs.forEach(ev => {
@@ -285,6 +316,14 @@ function renderizarTarefas() {
             }
         });
     }
+
+    // Filtra tarefas que já passaram do horário de hoje
+    combinedTarefas = combinedTarefas.filter(t => {
+        if (t.time && t.time !== 'S/H') {
+            return t.time >= horaLocalStr;
+        }
+        return true;
+    });
 
     const cats = [...new Set(combinedTarefas.map(t => t.category))];
     cats.forEach(c => {
@@ -422,6 +461,21 @@ function carregarMomentaneas() {
             ...m,
             time: m.time || "", ativo: m.ativo !== undefined ? m.ativo : true, preAviso: m.preAviso || "0", notas: m.notas || "", category: m.category || "Momentânea"
         }));
+
+        const hojeObj = new Date(Date.now() + timeOffset);
+        const hAtualStr = hojeObj.getHours().toString().padStart(2, '0');
+        const mAtualStr = hojeObj.getMinutes().toString().padStart(2, '0');
+        const horaLocalStr = `${hAtualStr}:${mAtualStr}`;
+
+        let mudou = false;
+        momentaneas.forEach(m => {
+            if (!m.arquivado && m.time && m.time < horaLocalStr) {
+                m.arquivado = true;
+                mudou = true;
+            }
+        });
+        if (mudou) salvarMomentaneas();
+
     } else { momentaneas = []; }
     renderizarMomentaneas();
 }
@@ -441,7 +495,20 @@ document.getElementById('input-momentaria').onkeypress = (e) => {
 
 function renderizarMomentaneas() {
     const lista = document.getElementById('lista-momentaneas'); if (!lista) return; lista.innerHTML = '';
-    const ativas = momentaneas.filter(m => !m.arquivado).sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
+
+    const hojeObj = new Date(Date.now() + timeOffset);
+    const hAtualStr = hojeObj.getHours().toString().padStart(2, '0');
+    const mAtualStr = hojeObj.getMinutes().toString().padStart(2, '0');
+    const horaLocalStr = `${hAtualStr}:${mAtualStr}`;
+
+    const ativas = momentaneas.filter(m => {
+        if (m.arquivado) return false;
+        if (m.time) {
+            return m.time >= horaLocalStr;
+        }
+        return true;
+    }).sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
+
     ativas.forEach(m => {
         const div = document.createElement('div'); div.className = 'momentary-item';
         // HTML alterado para incluir a hora e o ID no texto clicável
