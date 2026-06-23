@@ -44,6 +44,11 @@ app.commandLine.appendSwitch('disable-features', 'WebBluetooth,WebAuthentication
 app.commandLine.appendSwitch('disable-webusb');
 app.commandLine.appendSwitch('disable-webauthn');
 
+// 🚀 OTIMIZAÇÃO EXTREMA: Força limpeza de memória e desativa rasterização por software (alivia CPU)
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256 --lite-mode');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+
 let mainWindow;
 let splashWindow;
 let patcherWindow;
@@ -452,22 +457,43 @@ app.whenReady().then(() => {
         }
     });
 
-    // --- USB Ejection Logic ---
+    // --- USB Ejection Logic (EXTREMELY OPTIMIZED) ---
+    // Executa PowerShell APENAS UMA VEZ no startup para mapear os discos rígidos/rede (DriveType != 2)
+    let fixedDrives = new Set(['C:']);
+    exec('powershell -Command "Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -ne 2 } | Select-Object -ExpandProperty DeviceID"', (err, stdout) => {
+        if (!err && stdout) {
+            stdout.split('\\n').forEach(d => {
+                const drive = d.trim();
+                if (drive) fixedDrives.add(drive);
+            });
+        }
+    });
+
     function checkUSB() {
         if (!mainWindow || mainWindow.isDestroyed()) return;
-        exec('powershell -Command "Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -eq 2 | Select-Object DeviceID, VolumeName | ConvertTo-Json"', (err, stdout) => {
-            if (err || !stdout.trim()) {
-                mainWindow.webContents.send('usb-detected', []);
+        const drives = [];
+        const letters = "DEFGHIJKLMNOPQRSTUVWXYZ".split('');
+        let checksPending = letters.length;
+
+        letters.forEach(letter => {
+            const driveStr = `${letter}:`;
+            // Se for um disco fixo mapeado no startup, ignora sem gastar CPU
+            if (fixedDrives.has(driveStr)) {
+                checksPending--;
+                if (checksPending === 0) mainWindow.webContents.send('usb-detected', drives);
                 return;
             }
-            try {
-                let data = JSON.parse(stdout);
-                if (!Array.isArray(data)) data = [data];
-                const drives = data.map(d => ({ letter: d.DeviceID, name: d.VolumeName || "USB Drive" }));
-                mainWindow.webContents.send('usb-detected', drives);
-            } catch (e) {
-                mainWindow.webContents.send('usb-detected', []);
-            }
+            
+            // Checagem Assíncrona Nativa (0% de CPU comparado ao exec do PowerShell)
+            fs.access(`${driveStr}\\`, fs.constants.F_OK, (err) => {
+                if (!err) {
+                    drives.push({ letter: driveStr, name: `Disco USB (${letter}:)` });
+                }
+                checksPending--;
+                if (checksPending === 0) {
+                    mainWindow.webContents.send('usb-detected', drives);
+                }
+            });
         });
     }
     

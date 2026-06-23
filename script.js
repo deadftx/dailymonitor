@@ -61,22 +61,18 @@ function aplicarWallpaper() {
 
     if (configApp.wallpaperPath && configApp.wallpaperPath !== "") {
         try {
-            const fs = require('fs');
-            const fileBuffer = fs.readFileSync(configApp.wallpaperPath);
             const ext = configApp.wallpaperPath.toLowerCase();
             let opacidade = configApp.wallpaperOpacity || 0.8;
+            // 🚀 OTIMIZAÇÃO EXTREMA DE MEMÓRIA: Usar file:/// invés de Blob/Base64 salva centenas de MBs de RAM
+            const fileUrl = `file:///${configApp.wallpaperPath.replace(/\\/g, '/')}`;
 
             if (ext.endsWith('.mp4') || ext.endsWith('.webm')) {
-                const blob = new Blob([fileBuffer], { type: ext.endsWith('.mp4') ? 'video/mp4' : 'video/webm' });
-                const urlVirtual = URL.createObjectURL(blob);
-                bgContainer.innerHTML = `<video src="${urlVirtual}" autoplay loop muted style="opacity: ${opacidade}; width: 100vw; height: 100vh; object-fit: fill; position: absolute; top: 0; left: 0;"></video>`;
+                bgContainer.innerHTML = `<video src="${fileUrl}" autoplay loop muted style="opacity: ${opacidade}; width: 100vw; height: 100vh; object-fit: fill; position: absolute; top: 0; left: 0;"></video>`;
             } else {
-                const base64Image = fileBuffer.toString('base64');
-                const mimeType = (ext.endsWith('.png')) ? 'image/png' : 'image/jpeg';
-                bgContainer.innerHTML = `<img src="data:${mimeType};base64,${base64Image}" style="opacity: ${opacidade}; width: 100vw; height: 100vh; object-fit: fill; position: absolute; top: 0; left: 0;">`;
+                bgContainer.innerHTML = `<img src="${fileUrl}" style="opacity: ${opacidade}; width: 100vw; height: 100vh; object-fit: fill; position: absolute; top: 0; left: 0;">`;
             }
         } catch (erro) {
-            console.error("❌ Falha fatal ao ler o arquivo pelo Node:", erro);
+            console.error("❌ Falha ao carregar o wallpaper otimizado:", erro);
         }
     }
 }

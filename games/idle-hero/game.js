@@ -405,6 +405,7 @@ function checkSynergies() {
 }
 
 function updateUI() {
+    if (document.hidden) return; // 🚀 OTIMIZAÇÃO: Não desenhar DOM se invisível
     const synContainer = document.getElementById('synergy-container');
     if (synContainer) {
         synContainer.innerHTML = '';
@@ -534,8 +535,10 @@ function gerarInimigo() {
     document.getElementById('enemy-hp').style.width = '100%';
     let logDiv = document.getElementById('combat-log');
     if (logDiv) {
-        logDiv.innerHTML += isBoss ? `<div style="color:red; font-weight:bold; margin-top:10px;">O terrível ${currentEnemy.name} surgiu!</div>` : `<div style="color:#aaa; font-style:italic; margin-top:10px;">Um ${currentEnemy.name} apareceu!</div>`;
-        logDiv.scrollTop = logDiv.scrollHeight;
+        if (!document.hidden) {
+            logDiv.insertAdjacentHTML('beforeend', isBoss ? `<div style="color:red; font-weight:bold; margin-top:10px;">O terrível ${currentEnemy.name} surgiu!</div>` : `<div style="color:#aaa; font-style:italic; margin-top:10px;">Um ${currentEnemy.name} apareceu!</div>`);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
     }
 }
 
@@ -855,7 +858,7 @@ function iniciarCombate() {
         
         let logDiv = document.getElementById('combat-log');
         if (combatLogHtml.length > 0) {
-            logDiv.innerHTML += combatLogHtml.join('');
+            if (!document.hidden) logDiv.insertAdjacentHTML('beforeend', combatLogHtml.join(''));
         }
         
         // Remove excess logs to prevent infinite DOM growth
@@ -876,8 +879,10 @@ function iniciarCombate() {
             
             gameState.xp += xpGained;
             gameState.gold += goldGained;
-            logDiv.innerHTML += `<div style="color:#2ecc71; margin-top:5px; text-align:center;">Vitória! +${xpGained}XP +${goldGained}💰</div>`;
-            logDiv.scrollTop = logDiv.scrollHeight;
+            if (!document.hidden) {
+                logDiv.insertAdjacentHTML('beforeend', `<div style="color:#2ecc71; margin-top:5px; text-align:center;">Vitória! +${xpGained}XP +${goldGained}💰</div>`);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
             
             if (currentEnemy.isBoss) {
                 gameState.fightingBoss = false;
@@ -920,11 +925,11 @@ function iniciarCombate() {
                     h.unspentPoints += 5 * levelsGained;
                     h.hp = getMaxHp(h);
                     anyLevelUp = true;
-                    logDiv.innerHTML += `<div style="color:gold; text-align:center; font-weight:bold;">🌟 ${h.name} UP! (Nv ${h.level})</div>`;
+                    if (!document.hidden) logDiv.insertAdjacentHTML('beforeend', `<div style="color:gold; text-align:center; font-weight:bold;">🌟 ${h.name} UP! (Nv ${h.level})</div>`);
                 }
             });
             
-            if (anyLevelUp) logDiv.scrollTop = logDiv.scrollHeight;
+            if (anyLevelUp && !document.hidden) logDiv.scrollTop = logDiv.scrollHeight;
             
             gerarInimigo();
         } else {
@@ -953,7 +958,7 @@ function iniciarCombate() {
                 let logDiv = document.getElementById('combat-log');
                 
                 if (isEvaded) {
-                    logDiv.innerHTML += `<div style="margin-top:2px;">O ${currentEnemy.name} atacou ${target.name}, mas ele <span style='color:#7f8c8d; font-style:italic;'>[Esquivou!]</span></div>`;
+                    if (!document.hidden) logDiv.insertAdjacentHTML('beforeend', `<div style="margin-top:2px;">O ${currentEnemy.name} atacou ${target.name}, mas ele <span style='color:#7f8c8d; font-style:italic;'>[Esquivou!]</span></div>`);
                 } else {
                     let enemyDmg = currentEnemy.attackBase;
                     
@@ -973,7 +978,7 @@ function iniciarCombate() {
                     
                     if (isBossCrit) {
                         enemyDmg *= critDmgMult;
-                        logDiv.innerHTML += `<div style="margin-top:2px; color:#e67e22; font-size:0.8rem;">O Inimigo causou um Dano Crítico!</div>`;
+                        if (!document.hidden) logDiv.insertAdjacentHTML('beforeend', `<div style="margin-top:2px; color:#e67e22; font-size:0.8rem;">O Inimigo causou um Dano Crítico!</div>`);
                     }
 
                     let treeDefMult = gameState.skillTree.unlockedNodes.includes(3) ? 1.2 : 1.0;
@@ -1004,7 +1009,7 @@ function iniciarCombate() {
                 
                 if (isBossCrit) msg = `<span style="color:#e74c3c; font-weight:bold;">🔥 CRÍTICO DO BOSS!</span> ${msg}`;
                 
-                document.getElementById('combat-log').innerHTML += `<div style="margin-bottom:2px; color:#e67e22;">${msg}</div>`;
+                if (!document.hidden) document.getElementById('combat-log').insertAdjacentHTML('beforeend', `<div style="margin-bottom:2px; color:#e67e22;">${msg}</div>`);
             }
         }
         }
@@ -1023,13 +1028,15 @@ function iniciarCombate() {
                 gameState.defendingNode = null;
             }
             
-            document.getElementById('combat-log').innerHTML += `<div style="color:red; font-weight:bold; margin-top:5px; text-align:center;">☠️ O Boss aniquilou a equipe...</div>`;
+            if (!document.hidden) document.getElementById('combat-log').insertAdjacentHTML('beforeend', `<div style="color:red; font-weight:bold; margin-top:5px; text-align:center;">☠️ O Boss aniquilou a equipe...</div>`);
             gerarInimigo();
         }
         
         // Atualiza barra HP do inimigo
-        const pct = Math.max(0, (currentEnemy.hp / currentEnemy.maxHp) * 100);
-        document.getElementById('enemy-hp').style.width = `${pct}%`;
+        if (!document.hidden) {
+            const pct = Math.max(0, (currentEnemy.hp / currentEnemy.maxHp) * 100);
+            document.getElementById('enemy-hp').style.width = `${pct}%`;
+        }
         
         salvarJogo();
         updateUI();
