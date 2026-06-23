@@ -279,9 +279,17 @@ app.whenReady().then(() => {
     });
 
     ipcMain.on('set-monitor', (event, displayId, fullscreen = true) => {
-        if (!displayId) return;
         const displays = screen.getAllDisplays();
-        const targetDisplay = displays.find(d => d.id.toString() === displayId.toString());
+        let targetDisplay = null;
+        
+        if (displayId) {
+            targetDisplay = displays.find(d => d.id.toString() === displayId.toString());
+        }
+        
+        // Se o monitor salvo não existir mais (foi desconectado), força o retorno para o principal
+        if (!targetDisplay) {
+            targetDisplay = screen.getPrimaryDisplay();
+        }
 
         if (targetDisplay && mainWindow) {
             const wasFullscreen = mainWindow.isFullScreen();
